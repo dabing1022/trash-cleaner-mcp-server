@@ -11,6 +11,9 @@ import {
     getFileInfo,
     formatFileInfo
 } from "../utils/fileUtils";
+import fs from "fs/promises";
+import { expandHomeDir } from "../utils/pathUtil";
+import { isDangerousTarget } from "../utils/dangerPatterns";
 
 export function registerFsTools(server: McpServer) {
     // 获取文件夹大小
@@ -156,6 +159,41 @@ export function registerFsTools(server: McpServer) {
             } catch (error: any) {
                 return {
                     content: [{ type: "text", text: `Error: ${error.message || String(error)}` }]
+                };
+            }
+        }
+    );
+
+    // 删除文件
+    registerTool(
+        server,
+        "deleteFile",
+        "删除指定文件，需用户确认。",
+        {
+            path: z.string().describe("要删除的文件路径"),
+            confirm: z.boolean().describe("是否确认删除，必须为 true 才会执行删除"),
+            dangerConfirm: z.boolean().optional().describe("高危操作再次确认，必须为 true 才能删除高危文件")
+        },
+        async (args: { path: string; confirm: boolean; dangerConfirm?: boolean }) => {
+            if (!args.confirm) {
+                return {
+                    content: [{ type: "text", text: "危险操作！请确认是否删除该文件。请将 confirm 参数设置为 true 后再执行。" }]
+                };
+            }
+            if (isDangerousTarget(args.path) && !args.dangerConfirm) {
+                return {
+                    content: [{ type: "text", text: "高危文件/路径！请再次确认，dangerConfirm 参数必须为 true 才能删除。" }]
+                };
+            }
+            // 真实删除逻辑
+            try {
+                await fs.unlink(expandHomeDir(args.path));
+                return {
+                    content: [{ type: "text", text: "文件已删除。" }]
+                };
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `删除失败: ${error.message || String(error)}` }]
                 };
             }
         }
