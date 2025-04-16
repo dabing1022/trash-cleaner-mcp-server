@@ -2,15 +2,17 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
-import { registerSystemTools } from "./tools/system";
+import { registerOsTools } from "./tools/os";
+import { registerFsTools } from "./tools/fs";
+import pkg from './package.json' assert { type: 'json' };
 
 const server = new McpServer({
   name: "Trash Cleaner MCP Server",
-  version: "0.1.0"
+  version: pkg.version
 });
 
-registerSystemTools(server);
+registerOsTools(server);
+registerFsTools(server);
 
 console.log('欢迎使用智能垃圾清理 MCP 服务！');
 console.log('本工具将帮助您扫描和清理电脑中的垃圾文件。');

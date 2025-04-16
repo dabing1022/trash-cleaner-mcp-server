@@ -1,8 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { registerTool } from "../utils/registerToolHelper";
+import getFolderSize from "get-folder-size";
 
-export function registerSystemTools(server: McpServer) {
+export function registerOsTools(server: McpServer) {
     registerTool(
         server,
         "getSystemType",

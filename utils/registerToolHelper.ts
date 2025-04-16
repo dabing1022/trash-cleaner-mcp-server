@@ -4,7 +4,7 @@ import { z } from "zod";
 const TOOL_PREFIX = "[TrashCleaner] ";
 
 // 定义工具实现函数的类型别名，以便类型提示
-type ToolImplementation = () => Promise<{ content: Array<{ type: "text"; text: string }> }>;
+type ToolImplementation = (args: any) => Promise<{ content: Array<{ type: "text"; text: string }> }>;
 
 /**
  * 注册 MCP 工具，自动添加统一前缀。

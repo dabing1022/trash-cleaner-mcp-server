@@ -19,6 +19,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "latest",
     "@types/node": "^22.14.1",
+    "get-folder-size": "^5.0.0",
     "zod": "^3.24.2"
   }
 }
