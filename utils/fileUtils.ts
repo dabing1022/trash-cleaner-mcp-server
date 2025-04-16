@@ -4,6 +4,7 @@ import path from "path";
 import { createHash } from "crypto";
 import { expandHomeDir } from "./pathUtil";
 import getFolderSize from "get-folder-size";
+import { exec } from 'child_process';
 
 /**
  * 获取文件夹大小
@@ -302,4 +303,75 @@ export function formatFileInfo(fileInfo: FileInfo): string {
     }
     
     return output;
+}
+
+/**
+ * 检查文件或目录是否存在
+ * @param filePath 文件或目录路径
+ * @returns 包含存在状态和类型的对象
+ */
+export async function checkPathExists(filePath: string): Promise<{ exists: boolean; type: string | null }> {
+  try {
+    const expandedPath = expandHomeDir(filePath);
+    const stats = await fs.stat(expandedPath);
+    
+    let type = "unknown";
+    if (stats.isFile()) {
+      type = "file";
+    } else if (stats.isDirectory()) {
+      type = "directory";
+    } else if (stats.isSymbolicLink()) {
+      type = "symlink";
+    }
+    
+    return {
+      exists: true,
+      type
+    };
+  } catch (error) {
+    return {
+      exists: false,
+      type: null
+    };
+  }
+}
+
+export async function forceDeleteFile(filePath: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const stats = await fs.stat(filePath);
+    
+    if (stats.isDirectory()) {
+      // 如果是目录，使用 rm 递归删除
+      await fs.rm(filePath, { recursive: true, force: true });
+      return { success: true, message: "文件夹已成功删除" };
+    } else {
+      // 如果是文件，使用 unlink 删除
+      await fs.unlink(filePath);
+      return { success: true, message: "文件已成功删除" };
+    }
+  } catch (error) {
+    // 如果常规删除失败，尝试提升权限删除
+    try {
+      const { stdout, stderr } = await new Promise<{stdout: string, stderr: string}>((resolve, reject) => {
+        import('child_process').then(cp => {
+          cp.exec(`sudo rm -rf "${filePath}"`, (error, stdout, stderr) => {
+            if (error) reject(error);
+            else resolve({stdout, stderr});
+          });
+        });
+      });
+      
+      return { success: true, message: "路径已通过提升权限成功删除" };
+    } catch (forceError) {
+      return { 
+        success: false, 
+        message: `强制删除失败: ${(forceError as Error).message || String(forceError)}` 
+      };
+    }
+  }
+}
+
+// 为了向后兼容，我们保留原始函数名，但内部调用新函数
+export async function forceDeletePath(filePath: string): Promise<{ success: boolean; message: string }> {
+  return forceDeleteFile(filePath);
 } 

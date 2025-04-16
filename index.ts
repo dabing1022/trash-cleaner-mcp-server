@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerOsTools } from "./tools/os";
 import { registerFsTools } from "./tools/fs";
+import { registerScanTools } from "./tools/scan";
 import pkg from './package.json' assert { type: 'json' };
 
 const server = new McpServer({
@@ -13,6 +14,7 @@ const server = new McpServer({
 
 registerOsTools(server);
 registerFsTools(server);
+registerScanTools(server);
 
 console.log('欢迎使用智能垃圾清理 MCP 服务！');
 console.log('本工具将帮助您扫描和清理电脑中的垃圾文件。');

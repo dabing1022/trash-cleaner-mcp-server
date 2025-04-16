@@ -9,9 +9,11 @@ import {
     formatDirectoryAnalysis,
     calculateFileHash,
     getFileInfo,
-    formatFileInfo
+    formatFileInfo,
+    forceDeleteFile,
+    forceDeletePath,
+    checkPathExists
 } from "../utils/fileUtils";
-import fs from "fs/promises";
 import { expandHomeDir } from "../utils/pathUtil";
 import { isDangerousTarget } from "../utils/dangerPatterns";
 
@@ -167,33 +169,62 @@ export function registerFsTools(server: McpServer) {
     // 删除文件
     registerTool(
         server,
-        "deleteFile",
-        "删除指定文件，需用户确认。",
+        "deletePath",
+        "删除指定文件或文件夹，需用户确认。",
         {
-            path: z.string().describe("要删除的文件路径"),
+            path: z.string().describe("要删除的文件或文件夹路径"),
             confirm: z.boolean().describe("是否确认删除，必须为 true 才会执行删除"),
-            dangerConfirm: z.boolean().optional().describe("高危操作再次确认，必须为 true 才能删除高危文件")
+            dangerConfirm: z.boolean().optional().describe("高危操作再次确认，必须为 true 才能删除高危路径")
         },
         async (args: { path: string; confirm: boolean; dangerConfirm?: boolean }) => {
             if (!args.confirm) {
                 return {
-                    content: [{ type: "text", text: "危险操作！请确认是否删除该文件。请将 confirm 参数设置为 true 后再执行。" }]
+                    content: [{ type: "text", text: "危险操作！请确认是否删除该路径。请将 confirm 参数设置为 true 后再执行。" }]
                 };
             }
             if (isDangerousTarget(args.path) && !args.dangerConfirm) {
                 return {
-                    content: [{ type: "text", text: "高危文件/路径！请再次确认，dangerConfirm 参数必须为 true 才能删除。" }]
+                    content: [{ type: "text", text: "高危路径！请再次确认，dangerConfirm 参数必须为 true 才能删除。" }]
                 };
             }
             // 真实删除逻辑
             try {
-                await fs.unlink(expandHomeDir(args.path));
+                const result = await forceDeletePath(expandHomeDir(args.path));
                 return {
-                    content: [{ type: "text", text: "文件已删除。" }]
+                    content: [{ type: "text", text: result.message }]
                 };
             } catch (error: any) {
                 return {
                     content: [{ type: "text", text: `删除失败: ${error.message || String(error)}` }]
+                };
+            }
+        }
+    );
+
+    // 检查路径是否存在
+    registerTool(
+        server,
+        "checkPathExists",
+        "检查指定的文件或目录路径是否存在。",
+        {
+            path: z.string().describe("要检查的文件或目录路径")
+        },
+        async (args: { path: string }) => {
+            try {
+                const result = await checkPathExists(expandHomeDir(args.path));
+                
+                if (result.exists) {
+                    return {
+                        content: [{ type: "text", text: `路径 "${args.path}" 存在，类型: ${result.type}` }]
+                    };
+                } else {
+                    return {
+                        content: [{ type: "text", text: `路径 "${args.path}" 不存在` }]
+                    };
+                }
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `检查失败: ${error.message || String(error)}` }]
                 };
             }
         }
