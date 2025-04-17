@@ -31,7 +31,7 @@ export function registerCleanerTools(server: McpServer) {
     logger.warn('清理工具在非 macOS 系统上运行，部分功能可能不可用', { platform: os.platform() });
     registerTool(
       server,
-      "macOSWarning",
+      "[Cleaner] macOSWarning",
       "显示当前系统不是 macOS 的警告信息。",
       {},
       async () => {
@@ -48,7 +48,7 @@ export function registerCleanerTools(server: McpServer) {
   // 应用缓存清理工具
   registerTool(
     server,
-    "cleanAppCaches",
+    "[Cleaner] cleanAppCaches",
     "清理各种应用程序缓存文件，包括用户缓存目录、应用程序保存的状态等。仅适用于 macOS 系统。",
     {
       dryRun: z.boolean().default(true).describe("是否仅模拟执行而不实际删除文件"),
@@ -100,7 +100,7 @@ export function registerCleanerTools(server: McpServer) {
   // 临时文件清理工具
   registerTool(
     server,
-    "cleanTempFiles",
+    "[Cleaner] cleanTempFiles",
     "清理系统临时文件目录中的临时文件。仅适用于 macOS 系统。",
     {
       dryRun: z.boolean().default(true).describe("是否仅模拟执行而不实际删除文件"),
@@ -152,7 +152,7 @@ export function registerCleanerTools(server: McpServer) {
   // 应用卸载残留清理工具
   registerTool(
     server,
-    "cleanAppRemnants",
+    "[Cleaner] cleanAppRemnants",
     "清理已卸载应用程序的配置文件、缓存和其他残留文件。仅适用于 macOS 系统。",
     {
       appName: z.string().optional().describe("应用程序名称（可选，部分匹配）"),
@@ -204,7 +204,7 @@ export function registerCleanerTools(server: McpServer) {
   // 系统智能清理工具
   registerTool(
     server,
-    "smartCleanSystem",
+    "[Cleaner] smartCleanSystem",
     "智能清理系统垃圾文件，支持不同的清理级别。仅适用于 macOS 系统。",
     {
       cleanLevel: z.enum(["safe", "normal", "deep"]).default("safe").describe("清理级别: safe(安全), normal(标准), deep(深度)"),
@@ -259,7 +259,7 @@ export function registerCleanerTools(server: McpServer) {
   // VSCode 扩展清理工具
   registerTool(
     server,
-    "cleanVSCodeExtensions",
+    "[Cleaner] cleanVSCodeExtensions",
     "清理 VSCode 及相关编辑器的低版本扩展。",
     {
       editorPath: z.string().optional().describe("编辑器扩展目录路径，如不指定则清理所有编辑器"),
@@ -309,7 +309,7 @@ export function registerCleanerTools(server: McpServer) {
   // VSCode 扩展清理报告工具
   registerTool(
     server,
-    "reportVSCodeExtensions",
+    "[Cleaner] reportVSCodeExtensions",
     "生成 VSCode 及相关编辑器低版本扩展的报告。",
     {
       editorPath: z.string().optional().describe("编辑器扩展目录路径，如不指定则报告所有编辑器")
@@ -345,7 +345,7 @@ export function registerCleanerTools(server: McpServer) {
   // 大文件扫描工具
   registerTool(
     server,
-    "findLargeFiles",
+    "[Cleaner] findLargeFiles",
     "在指定目录中查找超过指定大小的大文件。",
     {
       path: z.string().describe("要扫描的目录路径"),

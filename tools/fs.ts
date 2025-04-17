@@ -21,7 +21,7 @@ export function registerFsTools(server: McpServer) {
     // 获取文件夹大小
     registerTool(
         server,
-        "getFolderSize",
+        "[Fs] getFolderSize",
         "获取指定文件夹的大小（字节）。",
         {
             path: z.string().describe("文件夹路径")
@@ -43,7 +43,7 @@ export function registerFsTools(server: McpServer) {
     // 列出目录内容
     registerTool(
         server,
-        "listDirectory",
+        "[Fs] listDirectory",
         "列出指定目录下的所有文件和子目录。",
         {
             path: z.string().describe("目录路径"),
@@ -66,7 +66,7 @@ export function registerFsTools(server: McpServer) {
     // 文件查找
     registerTool(
         server,
-        "findFiles",
+        "[Fs] findFiles",
         "在指定目录中查找符合条件的文件。",
         {
             path: z.string().describe("起始目录路径"),
@@ -97,7 +97,7 @@ export function registerFsTools(server: McpServer) {
     // 文件统计
     registerTool(
         server,
-        "analyzeDirectory",
+        "[Fs] analyzeDirectory",
         "分析目录中文件的类型分布、大小分布等信息。",
         {
             path: z.string().describe("目录路径"),
@@ -122,7 +122,7 @@ export function registerFsTools(server: McpServer) {
     // 计算文件哈希
     registerTool(
         server,
-        "getFileHash",
+        "[Fs] getFileHash",
         "计算文件的 MD5/SHA256 哈希值，用于文件完整性校验。",
         {
             path: z.string().describe("文件路径"),
@@ -145,7 +145,7 @@ export function registerFsTools(server: McpServer) {
     // 检查文件类型
     registerTool(
         server,
-        "getFileType",
+        "[Fs] getFileType",
         "获取文件的MIME类型和基本信息。",
         {
             path: z.string().describe("文件路径")
@@ -169,7 +169,7 @@ export function registerFsTools(server: McpServer) {
     // 删除文件
     registerTool(
         server,
-        "deletePath",
+        "[Fs] deletePath",
         "删除指定文件或文件夹，需用户确认。",
         {
             path: z.string().describe("要删除的文件或文件夹路径"),
@@ -204,7 +204,7 @@ export function registerFsTools(server: McpServer) {
     // 检查路径是否存在
     registerTool(
         server,
-        "checkPathExists",
+        "[Fs] checkPathExists",
         "检查指定的文件或目录路径是否存在。",
         {
             path: z.string().describe("要检查的文件或目录路径")

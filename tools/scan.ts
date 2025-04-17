@@ -14,7 +14,7 @@ export function registerScanTools(server: McpServer) {
   // 全盘扫描工具
   registerTool(
     server,
-    "scanFullSystem",
+    "[Scan] scanFullSystem",
     "执行全盘扫描，识别文件分布和大小情况",
     {
       excludePaths: z.array(z.string()).optional().describe("要排除的路径数组"),
@@ -55,7 +55,7 @@ export function registerScanTools(server: McpServer) {
   // 指定目录扫描工具
   registerTool(
     server,
-    "scanDirectory",
+    "[Scan] scanDirectory",
     "扫描指定目录，分析文件分布和大小情况",
     {
       path: z.string().describe("目录路径"),
