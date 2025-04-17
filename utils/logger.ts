@@ -194,4 +194,7 @@ logger.info('日志系统初始化完成', {
   nodeVersion: process.version
 });
 
+// 导出组合日志文件的完整路径，供审计工具使用
+export const AUDIT_LOG_FILE_PATH = path.join(LOG_DIR, 'combined.log');
+
 export { logger, mcpLogger, morganStream }; 

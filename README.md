@@ -50,6 +50,10 @@ This server registers several tools callable via the MCP protocol:
     *   Options: `path` (string).
 *   `getSystemType`: Returns the operating system identifier (e.g., 'darwin', 'win32', 'linux').
 
+**Audit Tools:**
+*   `viewAuditLog`: Views the most recent lines from the application's main log file (`combined.log`).
+    *   Options: `lines` (int, default: 100, max: 1000).
+
 ## Tech Stack
 - Bun.js
 - TypeScript

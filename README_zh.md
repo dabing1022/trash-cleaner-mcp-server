@@ -48,6 +48,10 @@
     *   选项: `path` (字符串)。
 *   `getSystemType`: 返回操作系统标识符（例如：'darwin', 'win32', 'linux'）。
 
+**审计工具:**
+*   `viewAuditLog`: 查看应用程序主日志文件 (`combined.log`) 的最近日志行。
+    *   选项: `lines` (整数, 默认: 100, 最大: 1000)。
+
 ## 技术栈
 - Bun.js
 - TypeScript

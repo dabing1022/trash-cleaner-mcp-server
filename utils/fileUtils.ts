@@ -374,4 +374,42 @@ export async function forceDeleteFile(filePath: string): Promise<{ success: bool
 // 为了向后兼容，我们保留原始函数名，但内部调用新函数
 export async function forceDeletePath(filePath: string): Promise<{ success: boolean; message: string }> {
   return forceDeleteFile(filePath);
+}
+
+/**
+ * 读取文件最后 N 行
+ * @param filePath 文件路径
+ * @param linesToRead 要读取的行数
+ * @returns 文件最后 N 行的数组
+ */
+export async function readLastLines(filePath: string, linesToRead: number): Promise<string[]> {
+  const expandedPath = expandHomeDir(filePath);
+  try {
+    // 检查文件是否存在
+    await fs.access(expandedPath, fs.constants.R_OK);
+    
+    // 使用流和逆向读取是一种高效的方式，但实现复杂。
+    // 这里使用一种相对简单但可能对大文件性能稍差的方法：读取整个文件然后取最后几行。
+    // 对于日志文件，通常不会无限增长（有maxsize限制），这种方法通常可行。
+    // 如果遇到性能问题，可以替换为更复杂的流式读取实现。
+    const content = await fs.readFile(expandedPath, 'utf-8');
+    const lines = content.split(/\r?\n/);
+    
+    // 移除末尾可能存在的空行
+    if (lines.length > 0 && lines[lines.length - 1] === '') {
+      lines.pop();
+    }
+    
+    const startIndex = Math.max(0, lines.length - linesToRead);
+    return lines.slice(startIndex);
+
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      // 文件不存在，返回空数组
+      return [];
+    } else {
+      // 其他错误，抛出异常
+      throw new Error(`读取文件 ${expandedPath} 时出错: ${error.message || String(error)}`);
+    }
+  }
 } 
