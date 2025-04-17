@@ -69,6 +69,25 @@ export async function findFilesInDirectory(
     pattern: string, 
     maxDepth: number = 5
 ): Promise<string[]> {
+    return findPathsInDirectory(startPath, pattern, maxDepth, true, false);
+}
+
+/**
+ * 根据模式在目录中查找文件和文件夹
+ * @param startPath 起始目录
+ * @param pattern 名称匹配模式（支持 * 和 ? 通配符）
+ * @param maxDepth 最大搜索深度
+ * @param includeFiles 是否包含文件（默认true）
+ * @param includeDirectories 是否包含目录（默认true）
+ * @returns 匹配的文件和文件夹路径列表
+ */
+export async function findPathsInDirectory(
+    startPath: string, 
+    pattern: string, 
+    maxDepth: number = 5,
+    includeFiles: boolean = true,
+    includeDirectories: boolean = true
+): Promise<string[]> {
     const expandedPath = expandHomeDir(startPath);
     const regexPattern = pattern.replace(/\*/g, '.*').replace(/\?/g, '.');
     const regex = new RegExp(`^${regexPattern}$`, 'i');
@@ -83,9 +102,16 @@ export async function findFilesInDirectory(
             for (const entry of entries) {
                 const fullPath = path.join(dirPath, entry.name);
                 
-                if (entry.isFile() && regex.test(entry.name)) {
-                    results.push(fullPath);
-                } else if (entry.isDirectory()) {
+                // 检查文件名是否匹配模式
+                if (regex.test(entry.name)) {
+                    if ((entry.isFile() && includeFiles) || 
+                        (entry.isDirectory() && includeDirectories)) {
+                        results.push(fullPath);
+                    }
+                }
+                
+                // 继续搜索子目录
+                if (entry.isDirectory()) {
                     await searchDirectory(fullPath, depth + 1);
                 }
             }
@@ -96,6 +122,21 @@ export async function findFilesInDirectory(
     
     await searchDirectory(expandedPath, 0);
     return results;
+}
+
+/**
+ * 根据模式在目录中查找文件夹
+ * @param startPath 起始目录
+ * @param pattern 文件夹名称匹配模式（支持 * 和 ? 通配符）
+ * @param maxDepth 最大搜索深度
+ * @returns 匹配的文件夹路径列表
+ */
+export async function findDirectoriesInDirectory(
+    startPath: string, 
+    pattern: string, 
+    maxDepth: number = 5
+): Promise<string[]> {
+    return findPathsInDirectory(startPath, pattern, maxDepth, false, true);
 }
 
 /**

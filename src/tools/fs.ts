@@ -5,6 +5,8 @@ import {
     getFolderSizeInfo,
     listDirectoryContents,
     findFilesInDirectory,
+    findPathsInDirectory,
+    findDirectoriesInDirectory,
     analyzeDirectoryContents,
     formatDirectoryAnalysis,
     calculateFileHash,
@@ -63,7 +65,7 @@ export function registerFsTools(server: McpServer) {
         }
     );
 
-    // 文件查找
+    // 查找文件
     registerTool(
         server,
         "[Fs] findFiles",
@@ -80,6 +82,76 @@ export function registerFsTools(server: McpServer) {
                 if (results.length === 0) {
                     return {
                         content: [{ type: "text", text: "未找到匹配的文件" }]
+                    };
+                }
+                
+                return {
+                    content: [{ type: "text", text: results.join('\n') }]
+                };
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `Error: ${error.message || String(error)}` }]
+                };
+            }
+        }
+    );
+
+    // 查找文件和目录（新工具）
+    registerTool(
+        server,
+        "[Fs] findPaths",
+        "在指定目录中查找符合条件的文件和文件夹。",
+        {
+            path: z.string().describe("起始目录路径"),
+            pattern: z.string().describe("名称匹配模式（支持 * 和 ? 通配符）"),
+            maxDepth: z.number().int().min(0).default(5).describe("最大搜索深度"),
+            includeFiles: z.boolean().default(true).describe("是否包含文件"),
+            includeDirectories: z.boolean().default(true).describe("是否包含目录")
+        },
+        async (args: { path: string; pattern: string; maxDepth: number; includeFiles: boolean; includeDirectories: boolean }) => {
+            try {
+                const results = await findPathsInDirectory(
+                    args.path, 
+                    args.pattern, 
+                    args.maxDepth, 
+                    args.includeFiles, 
+                    args.includeDirectories
+                );
+                
+                if (results.length === 0) {
+                    return {
+                        content: [{ type: "text", text: "未找到匹配的路径" }]
+                    };
+                }
+                
+                return {
+                    content: [{ type: "text", text: results.join('\n') }]
+                };
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `Error: ${error.message || String(error)}` }]
+                };
+            }
+        }
+    );
+
+    // 查找目录（新工具）
+    registerTool(
+        server,
+        "[Fs] findDirectories",
+        "在指定目录中查找符合条件的文件夹。",
+        {
+            path: z.string().describe("起始目录路径"),
+            pattern: z.string().describe("文件夹名称匹配模式（支持 * 和 ? 通配符）"),
+            maxDepth: z.number().int().min(0).default(5).describe("最大搜索深度")
+        },
+        async (args: { path: string; pattern: string; maxDepth: number }) => {
+            try {
+                const results = await findDirectoriesInDirectory(args.path, args.pattern, args.maxDepth);
+                
+                if (results.length === 0) {
+                    return {
+                        content: [{ type: "text", text: "未找到匹配的文件夹" }]
                     };
                 }
                 
