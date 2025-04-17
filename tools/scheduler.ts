@@ -10,7 +10,12 @@ import { randomUUID } from 'crypto';
 import Fuse from 'fuse.js';
 
 // --- Configuration ---
-const SCHEDULER_CONFIG_DIR = path.join(os.homedir(), '.trash-cleaner');
+// Determine the appropriate configuration directory based on OS
+const getConfigDir = (): string => {
+    const baseDir = process.env.APPDATA || (process.platform === 'darwin' ? path.join(os.homedir(), 'Library', 'Preferences') : path.join(os.homedir(), '.config'));
+    return path.join(baseDir, 'trash-cleaner-mcp'); // Using a more specific name
+};
+const SCHEDULER_CONFIG_DIR = getConfigDir();
 const SCHEDULES_FILE_PATH = path.join(SCHEDULER_CONFIG_DIR, 'schedules.json');
 const MAX_HISTORY_PER_TASK = 20;
 

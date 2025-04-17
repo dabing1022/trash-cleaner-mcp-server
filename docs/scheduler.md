@@ -1,4 +1,3 @@
-
 # MCP 定时任务工具设计思路
 
 ## 1. 基础模型设计
@@ -17,7 +16,9 @@
 
 基于Croner库的序列化能力，我们可以：
 
-- 使用JSON文件存储所有任务配置（例如`~/.trash-cleaner/schedules.json`）
+- 使用JSON文件存储所有任务配置。**应根据操作系统确定合适的存储位置**，例如：
+  - Unix-like (Linux, macOS): `~/.config/trash-cleaner/schedules.json` 或 `~/.trash-cleaner/schedules.json`
+  - Windows: `%APPDATA%\\trash-cleaner\\schedules.json` 或 `%LOCALAPPDATA%\\trash-cleaner\\schedules.json`
 - 启动时读取此文件并重新调度所有任务
 - 任务变更时更新文件
 - 定期备份配置文件，防止意外损坏

@@ -6,6 +6,22 @@ A desktop MCP service providing tools to scan, analyze, and clean junk files, pr
 
 **Note:** Most cleaning tools (`cleanAppCaches`, `cleanTempFiles`, `cleanAppRemnants`, `smartCleanSystem`) are designed and tested specifically for **macOS**. Running them on other systems might not work or lead to unexpected behavior.
 
+## Features
+
+*   **Cross-Platform:** (Planned) Windows, macOS, Linux support.
+*   **Intelligent Scanning:** Identifies various types of junk files (caches, logs, temp files, etc.).
+*   **Selective Cleaning:** Tools for cleaning specific areas like application caches, temp files, and application remnants.
+*   **VS Code Extension Management:** Tools to find and clean old/unused VS Code extensions.
+*   **Filesystem Utilities:** Tools for directory analysis, file finding, size calculation, deletion, etc.
+*   **System Information:** Basic OS detection.
+*   **Audit Logging:** Tracks operations via `[Audit]` tools.
+*   **Scheduled Tasks:** Automate cleaning and other tasks using a flexible scheduler.
+    *   Define tasks using cron expressions or simple intervals.
+    *   Target any registered tool for execution.
+    *   Create/update tasks using exact tool names (`toolName`) or natural language queries (`toolQuery`) via fuzzy matching.
+    *   Full task management (list, details, update, enable/disable, delete).
+    *   Manual triggering and execution history tracking.
+
 ## Available Tools (Features)
 
 This server registers several tools callable via the MCP protocol:
@@ -56,6 +72,23 @@ This server registers several tools callable via the MCP protocol:
 *   `clearAuditLog`: **Deletes** the main application log file (`combined.log`). Requires confirmation.
     *   Options: `confirm` (bool, must be true).
 
+### Scheduled Tasks (`[Schedule] Tools)
+
+Provides functionality to schedule the execution of other registered tools.
+
+*   **`[Schedule] createTask`**: Creates a new scheduled task.
+    *   Requires `name`, `cronExpression`.
+    *   Requires *either* `toolName` (exact tool name like `"[TrashCleaner] cleanAppCaches"`) *or* `toolQuery` (fuzzy description like `"清理应用缓存"`).
+    *   Optional `toolParams`, `enabled`.
+*   **`[Schedule] listTasks`**: Lists all configured scheduled tasks and their status.
+*   **`[Schedule] getTaskDetails`**: Gets detailed information about a specific task by ID.
+*   **`[Schedule] updateTask`**: Updates an existing task. Can modify name, schedule, target tool (via `toolName` or `toolQuery`), parameters, and enabled status.
+*   **`[Schedule] enableTask`**: Enables a disabled task.
+*   **`[Schedule] disableTask`**: Disables an enabled task.
+*   **`[Schedule] deleteTask`**: Permanently deletes a scheduled task.
+*   **`[Schedule] runTaskNow`**: Manually triggers the execution of a task immediately.
+*   **`[Schedule] getTaskHistory`**: Retrieves the recent execution history (success/failure) for a task.
+
 ## Tech Stack
 - Bun.js
 - TypeScript
@@ -66,3 +99,29 @@ After publishing to npm, you can run MCP via bunx:
 ```sh
 bunx @childhoodandy/trash-cleaner-mcp-server
 ```
+
+## Installation
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd trash-cleaner-mcp-server
+
+# Install dependencies (using Bun)
+bun install
+```
+
+## Running the Server
+
+```bash
+bun start
+```
+
+## Configuration
+
+*   Logging configuration is in `src/utils/logger.ts`.
+*   Scheduled task definitions are stored in `~/.trash-cleaner/schedules.json`.
+
+## Development
+
+*(Development guidelines remain here...)*
