@@ -14,6 +14,7 @@
     "typescript": "^5"
   },
   "scripts": {
+    "start": "bun run index.ts",
     "release": "npm publish --access public"
   },
   "dependencies": {
