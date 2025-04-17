@@ -4,11 +4,18 @@ import { logger } from "./logger"; // Assuming logger is available here
 
 const TOOL_PREFIX = "[TrashCleaner] ";
 
-// 定义工具实现函数的类型别名，以便类型提示
+// 定义工具实现函数的类型别名
 type ToolImplementation = (args: any) => Promise<{ content: Array<{ type: "text"; text: string }> }>;
 
-// --- 添加 Map 来存储工具处理函数 ---
-const toolHandlers = new Map<string, ToolImplementation>();
+// --- 定义 ToolInfo 类型 和 toolRegistry Map ---
+interface ToolInfo {
+    handler: ToolImplementation;
+    description: string;
+    // Optional: Add schema later if needed for advanced matching
+    // paramsSchema: z.ZodRawShape;
+}
+
+const toolRegistry = new Map<string, ToolInfo>();
 
 /**
  * 注册 MCP 工具，自动添加统一前缀。
@@ -30,28 +37,28 @@ export function registerTool(
         prefixedName,
         description,
         params,
-        async (args: any) => { // Ensure handler is async
+        async (args: any) => {
             try {
-                // Call the original implementation
                 const result = await implementation(args);
                 return result;
             } catch (error: any) {
                 logger.error(`Error executing tool: ${prefixedName}`, { error: error.message || String(error), args });
-                // Re-throw or return an error structure? Let's return error structure for MCP
                 return {
                     content: [{ type: "text", text: `Tool execution failed: ${error.message || String(error)}` }]
                 };
             }
         }
     );
-    // --- 存储处理函数引用 ---
-    // Note: Storing the raw implementation, assuming executeTool will handle errors
-    toolHandlers.set(prefixedName, implementation);
+    // --- 存储 ToolInfo 到 toolRegistry ---
+    toolRegistry.set(prefixedName, {
+         handler: implementation,
+         description: description
+         // paramsSchema: params // Store schema if needed later
+     });
     logger.debug(`Registered tool: ${prefixedName}`);
 }
 
-
-// --- 添加 executeTool 函数 ---
+// --- 修改 executeTool 以使用 toolRegistry ---
 /**
  * 在服务器内部执行一个已注册的工具。
  * @param toolName 工具的完整名称（包含前缀）
@@ -60,21 +67,32 @@ export function registerTool(
  * @throws 如果工具未找到或执行出错
  */
 export async function executeTool(toolName: string, params: any): Promise<{ content: Array<{ type: "text"; text: string }> }> {
-    const handler = toolHandlers.get(toolName);
-    if (!handler) {
+    const toolInfo = toolRegistry.get(toolName);
+    if (!toolInfo) {
         logger.error(`Attempted to execute non-existent tool: ${toolName}`);
         throw new Error(`Tool not found: ${toolName}`);
     }
 
     logger.info(`Executing tool internally: ${toolName}`, { params });
     try {
-        // Directly call the stored handler
-        const result = await handler(params);
+        const result = await toolInfo.handler(params);
         logger.info(`Internal execution of ${toolName} completed.`);
         return result;
     } catch (error: any) {
         logger.error(`Internal execution of tool ${toolName} failed`, { error: error.message || String(error) });
-        // Re-throw the error to be handled by the caller (e.g., scheduler)
         throw error;
     }
+}
+
+// --- 添加 getAllToolInfo 函数 ---
+/**
+ * 获取所有已注册工具的信息（名称和描述）。
+ * @returns 返回一个包含工具名称和描述的数组。
+ */
+export function getAllToolsForMatching(): Array<{ name: string; description: string }> {
+    const tools: Array<{ name: string; description: string }> = [];
+    for (const [name, info] of toolRegistry.entries()) {
+        tools.push({ name: name, description: info.description });
+    }
+    return tools;
 }

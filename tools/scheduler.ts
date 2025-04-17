@@ -1,36 +1,35 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { registerTool } from "../utils/registerToolHelper";
+import { registerTool, executeTool, getAllToolsForMatching } from "../utils/registerToolHelper";
 import { logger } from "../utils/logger";
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
-import { Cron } from "croner"; // We'll add this dependency later
+import { Cron } from "croner";
 import { randomUUID } from 'crypto';
-import { executeTool } from "../utils/registerToolHelper"; // --- 导入 executeTool ---
+import Fuse from 'fuse.js';
 
 // --- Configuration ---
 const SCHEDULER_CONFIG_DIR = path.join(os.homedir(), '.trash-cleaner');
 const SCHEDULES_FILE_PATH = path.join(SCHEDULER_CONFIG_DIR, 'schedules.json');
-const MAX_HISTORY_PER_TASK = 20; // Limit the execution history stored
+const MAX_HISTORY_PER_TASK = 20;
 
 // --- Task Model ---
 interface TaskExecutionRecord {
     timestamp: string;
     result: 'success' | 'failure';
-    details?: string; // Error message or short result summary
+    details?: string;
 }
 
 interface ScheduledTask {
-    id: string; // Unique identifier
-    name: string; // User-friendly name
-    cronExpression: string; // Cron pattern or interval syntax
-    toolName: string; // The MCP tool to execute (e.g., "[Cleaner] cleanAppCaches")
-    toolParams: Record<string, any>; // Parameters for the target tool
-    enabled: boolean; // Whether the task is active
-    createdAt: string; // ISO timestamp
-    updatedAt: string; // ISO timestamp
-    // --- Execution History --- Add these back
+    id: string;
+    name: string;
+    cronExpression: string;
+    toolName: string;
+    toolParams: Record<string, any>;
+    enabled: boolean;
+    createdAt: string;
+    updatedAt: string;
     lastRunAt?: string;
     lastRunResult?: 'success' | 'failure';
     executionHistory?: TaskExecutionRecord[];
@@ -38,11 +37,8 @@ interface ScheduledTask {
 
 // --- Persistence ---
 let scheduledTasks: ScheduledTask[] = [];
-let cronJobs: Map<string, Cron> = new Map(); // Map task ID to Croner instance
+let cronJobs: Map<string, Cron> = new Map();
 
-/**
- * Ensures the configuration directory exists.
- */
 async function ensureConfigDir(): Promise<void> {
     try {
         await fs.mkdir(SCHEDULER_CONFIG_DIR, { recursive: true });
@@ -52,9 +48,6 @@ async function ensureConfigDir(): Promise<void> {
     }
 }
 
-/**
- * Loads tasks from the JSON file.
- */
 async function loadTasks(): Promise<void> {
     await ensureConfigDir();
     try {
@@ -67,17 +60,12 @@ async function loadTasks(): Promise<void> {
             scheduledTasks = [];
         } else {
             logger.error('Failed to load scheduled tasks', { path: SCHEDULES_FILE_PATH, error: error.message });
-            // Decide: Throw error or continue with empty list? Let's continue for resilience.
             scheduledTasks = [];
         }
     }
-    // Initialize Croner jobs based on loaded tasks
     initializeCronJobs();
 }
 
-/**
- * Saves the current list of tasks to the JSON file.
- */
 async function saveTasks(): Promise<void> {
     await ensureConfigDir();
     try {
@@ -86,37 +74,94 @@ async function saveTasks(): Promise<void> {
         logger.debug('Scheduled tasks saved successfully.', { path: SCHEDULES_FILE_PATH });
     } catch (error: any) {
         logger.error('Failed to save scheduled tasks', { path: SCHEDULES_FILE_PATH, error: error.message });
-        // Consider retry logic or user notification
+    }
+}
+
+// --- Helper Function for Name Resolution ---
+/**
+ * Resolves a tool name using either direct match or fuzzy search based on a query.
+ * @param toolName Direct tool name (optional).
+ * @param toolQuery Fuzzy query string (optional).
+ * @returns The resolved exact tool name.
+ * @throws If resolution fails (not found, ambiguous, invalid input).
+ */
+function resolveToolNameSync(toolName?: string, toolQuery?: string): string {
+    const availableTools = getAllToolsForMatching();
+
+    if (toolName) {
+        const exists = availableTools.some(t => t.name === toolName);
+        if (exists) {
+            return toolName;
+        } else {
+             // Provide suggestions if direct name fails but might be close
+            const fuseOptions = { includeScore: true, threshold: 0.6, keys: ['name'] };
+            const fuse = new Fuse(availableTools, fuseOptions);
+            const results = fuse.search(toolName);
+             let suggestions = "";
+             if (results.length > 0) {
+                 suggestions = "\n可能的工具是：\n" + results.slice(0, 3).map(r => `  - ${r.item.name}`).join('\n');
+             }
+            throw new Error(`指定的工具名称不存在: "${toolName}"${suggestions}`);
+        }
+    } else if (toolQuery) {
+        const fuseOptions = {
+            includeScore: true,
+            threshold: 0.4, // Start broader
+            keys: ['name', 'description']
+        };
+        const fuse = new Fuse(availableTools, fuseOptions);
+        const results = fuse.search(toolQuery);
+
+        if (results.length === 0) {
+            throw new Error(`找不到与查询 "${toolQuery}" 匹配的工具。`);
+        }
+
+        const bestMatch = results[0];
+        // Use a stricter threshold for automatic selection
+        if (bestMatch && bestMatch.score !== undefined && bestMatch.score < 0.3) {
+            logger.info(`Fuzzy search resolved "${toolQuery}" to "${bestMatch.item.name}" with score ${bestMatch.score}`);
+            return bestMatch.item.name;
+        } else {
+            const suggestions = results.slice(0, 3).map(r => `  - ${r.item.name} (相似度: ${((1 - (r.score ?? 1)) * 100).toFixed(0)}%)`);
+            throw new Error(`查询 "${toolQuery}" 匹配不明确或相似度不够。可能的匹配项：\n${suggestions.join('\n')}\n请提供更精确的名称或查询，或使用 'toolName' 参数指定完整名称。`);
+        }
+    } else {
+        throw new Error("内部错误：必须提供 toolName 或 toolQuery。");
     }
 }
 
 /**
- * Placeholder for initializing Croner jobs from loaded tasks.
+ * Initializes Croner jobs from the loaded scheduledTasks array.
  */
 function initializeCronJobs(): void {
-    cronJobs.forEach(job => job.stop()); // Stop existing jobs if any (e.g., during reload)
+    cronJobs.forEach(job => job.stop());
     cronJobs.clear();
 
     for (const task of scheduledTasks) {
         if (task.enabled) {
             try {
-                const job = new Cron(task.cronExpression, { name: task.id, paused: !task.enabled, timezone: "UTC" /* Or detect local */ }, () => {
-                    // TODO: Implement the actual tool execution logic here
-                    logger.info(`Executing scheduled task: ${task.name} (ID: ${task.id})`);
-                    executeScheduledTool(task);
+                // Ensure we pass a *copy* of the task to avoid closure issues if task object is modified later
+                const taskCopy = { ...task };
+                const job = new Cron(taskCopy.cronExpression, { name: taskCopy.id, paused: !taskCopy.enabled, timezone: "UTC" }, () => {
+                    logger.info(`Executing scheduled task: ${taskCopy.name} (ID: ${taskCopy.id})`);
+                    // Call executeScheduledTool with the task copy
+                    executeScheduledTool(taskCopy).catch(err => {
+                         // Error is already logged and history updated within executeScheduledTool's finally block
+                         logger.error(`Unhandled exception during scheduled execution of task ${taskCopy.id}`, { error: err.message });
+                     });
                 });
-                cronJobs.set(task.id, job);
-                logger.info(`Scheduled task "${task.name}" (ID: ${task.id})`);
+                cronJobs.set(taskCopy.id, job);
+                logger.info(`Scheduled task "${taskCopy.name}" (ID: ${taskCopy.id})`);
             } catch (error: any) {
-                 logger.error(`Failed to schedule task "${task.name}" (ID: ${task.id})`, { error: error.message, cron: task.cronExpression });
+                logger.error(`Failed to schedule task "${task.name}" (ID: ${task.id})`, { error: error.message, cron: task.cronExpression });
             }
         }
     }
-     logger.info(`Initialized ${cronJobs.size} active cron jobs.`);
+    logger.info(`Initialized ${cronJobs.size} active cron jobs.`);
 }
 
 /**
- * Executes the target MCP tool using the shared helper.
+ * Executes the target MCP tool using the shared helper and updates history.
  */
 async function executeScheduledTool(task: ScheduledTask): Promise<void> {
     const executionStartTime = new Date();
@@ -127,44 +172,37 @@ async function executeScheduledTool(task: ScheduledTask): Promise<void> {
 
     try {
         const result = await executeTool(task.toolName, task.toolParams);
-
-        // Log success
         const resultText = result?.content?.[0]?.text;
-        const summary = typeof resultText === 'string' ? resultText.substring(0, 200) : '(No text content)'; // Increased summary length
+        const summary = typeof resultText === 'string' ? resultText.substring(0, 200) : '(No text content)';
         logger.info(`Tool "${task.toolName}" executed successfully for task ${task.id}.`, { resultSummary: summary });
         executionResult = 'success';
         executionDetails = summary;
 
     } catch (error: any) {
-        // callTool should throw if the tool doesn't exist or execution fails
         const errorMessage = error.message || String(error);
         logger.error(`Execution of tool "${task.toolName}" for task ${task.id} failed via executeTool helper.`, { error: errorMessage });
         executionResult = 'failure';
         executionDetails = errorMessage;
-        // Do not re-throw here, handle history update below
     } finally {
-        // --- Update Task History --- Always attempt to update history
         const taskIndex = scheduledTasks.findIndex(t => t.id === task.id);
         if (taskIndex !== -1) {
-             const taskToUpdate = scheduledTasks[taskIndex];
-             if(taskToUpdate) {
+            const taskToUpdate = scheduledTasks[taskIndex];
+            if(taskToUpdate) {
                 taskToUpdate.lastRunAt = executionStartTime.toISOString();
                 taskToUpdate.lastRunResult = executionResult;
                 if (!taskToUpdate.executionHistory) {
                     taskToUpdate.executionHistory = [];
                 }
-                taskToUpdate.executionHistory.unshift({ // Add to the beginning
+                taskToUpdate.executionHistory.unshift({
                     timestamp: executionStartTime.toISOString(),
                     result: executionResult,
-                    details: executionDetails?.substring(0, 500) // Limit details length
+                    details: executionDetails?.substring(0, 500)
                 });
-                // Trim history
                 if (taskToUpdate.executionHistory.length > MAX_HISTORY_PER_TASK) {
                     taskToUpdate.executionHistory.length = MAX_HISTORY_PER_TASK;
                 }
-                taskToUpdate.updatedAt = new Date().toISOString(); // Reflect history update
-                // Persist the updated task history
-                await saveTasks();
+                taskToUpdate.updatedAt = new Date().toISOString();
+                await saveTasks(); // Save history updates
                 logger.debug(`Updated execution history for task ${task.id}. Result: ${executionResult}`);
             } else {
                  logger.error("Task disappeared while trying to update history", { taskId: task.id });
@@ -172,20 +210,18 @@ async function executeScheduledTool(task: ScheduledTask): Promise<void> {
         } else {
             logger.warn(`Task ${task.id} not found when trying to update history.`);
         }
-         // If the execution failed originally, re-throw the error *after* history update attempt
          if (executionResult === 'failure') {
-             throw new Error(executionDetails || "Scheduled task execution failed");
+             // No need to re-throw here, the caller in initializeCronJobs catches it
+             // throw new Error(executionDetails || "Scheduled task execution failed");
          }
     }
 }
-
 
 // --- MCP Tool Registration ---
 
 export async function registerSchedulerTools(server: McpServer): Promise<void> {
     logger.info('Registering scheduler tools...');
 
-    // Load tasks initially
     await loadTasks();
 
     // == Task Listing ==
@@ -193,10 +229,9 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
         server,
         "[Schedule] listTasks",
         "列出所有已配置的定时任务及其状态。",
-        {}, // No input parameters for simple listing
+        {},
         async () => {
             try {
-                // Return a copy to avoid external modification
                 const tasksToReturn = scheduledTasks.map(task => ({
                     id: task.id,
                     name: task.name,
@@ -204,7 +239,9 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
                     toolName: task.toolName,
                     enabled: task.enabled,
                     createdAt: task.createdAt,
-                    updatedAt: task.updatedAt
+                    updatedAt: task.updatedAt,
+                    lastRunAt: task.lastRunAt,
+                    lastRunResult: task.lastRunResult
                 }));
                 return {
                     content: [{ type: "text", text: JSON.stringify(tasksToReturn, null, 2) }]
@@ -217,70 +254,79 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
     );
 
     // == Task Creation ==
-     registerTool(
+    // Define the base shape without refine
+    const createTaskShape = {
+        name: z.string().min(1).describe("任务的可读名称"),
+        cronExpression: z.string().min(1).describe("Cron 表达式 (例如 '0 9 * * MON') 或间隔 (例如 '@daily', '*/15 * * * *')"),
+        toolName: z.string().min(1).optional().describe("要执行的 MCP 工具的【精确】完整名称 (例如 '[TrashCleaner] cleanAppCaches')"),
+        toolQuery: z.string().min(1).optional().describe("用于【模糊搜索】目标工具的自然语言描述或部分名称"),
+        toolParams: z.record(z.any()).optional().default({}).describe("要传递给目标工具的参数对象"),
+        enabled: z.boolean().optional().default(true).describe("是否立即启用任务")
+    };
+    // Type inference helper
+    const createTaskArgParser = z.object(createTaskShape);
+    type CreateTaskArgs = z.infer<typeof createTaskArgParser>;
+
+    registerTool(
         server,
         "[Schedule] createTask",
-        "创建一个新的定时任务。",
-        {
-            name: z.string().min(1).describe("任务的可读名称"),
-            cronExpression: z.string().min(1).describe("Cron 表达式 (例如 '0 9 * * MON') 或间隔 (例如 '@daily', '*/15 * * * *')"),
-            toolName: z.string().min(1).describe("要执行的 MCP 工具的完整名称 (例如 '[Cleaner] cleanAppCaches')"),
-            toolParams: z.record(z.any()).optional().default({}).describe("要传递给目标工具的参数对象"),
-            enabled: z.boolean().optional().default(true).describe("是否立即启用任务")
-        },
-        async (args: { name: string; cronExpression: string; toolName: string; toolParams: Record<string, any>; enabled: boolean }) => {
-            try {
-                // Basic validation (Croner will do more specific cron validation)
-                if (!args.name || !args.cronExpression || !args.toolName) {
-                     throw new Error("Missing required fields: name, cronExpression, toolName");
-                }
+        "创建一个新的定时任务。可以通过 'toolName' 指定精确工具名，或通过 'toolQuery' 进行模糊搜索。",
+        createTaskShape, // Pass the raw shape
+        async (args: CreateTaskArgs) => { // Use inferred type
+            // --- Manual Validation for toolName/toolQuery ---
+            if (!args.toolName && !args.toolQuery) {
+                throw new Error("必须提供 'toolName' 或 'toolQuery' 中的一个。");
+            }
+            if (args.toolName && args.toolQuery) {
+                throw new Error("不能同时提供 'toolName' 和 'toolQuery'。");
+            }
+            // --- End Manual Validation ---
 
-                 // TODO: Add validation to check if toolName actually exists in the server?
+            try {
+                const resolvedToolName = resolveToolNameSync(args.toolName, args.toolQuery);
 
                 const newTask: ScheduledTask = {
                     id: randomUUID(),
                     name: args.name,
                     cronExpression: args.cronExpression,
-                    toolName: args.toolName,
+                    toolName: resolvedToolName,
                     toolParams: args.toolParams,
                     enabled: args.enabled,
                     createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
+                    updatedAt: new Date().toISOString(),
+                    executionHistory: []
                 };
 
-                // Add to list
                 scheduledTasks.push(newTask);
 
-                // Schedule with Croner if enabled
                 if (newTask.enabled) {
                     try {
-                        const job = new Cron(newTask.cronExpression, { name: newTask.id, paused: false, timezone: "UTC" }, () => {
-                             logger.info(`Executing scheduled task: ${newTask.name} (ID: ${newTask.id})`);
-                             executeScheduledTool(newTask); // Use the placeholder
+                        const taskCopy = { ...newTask };
+                        const job = new Cron(taskCopy.cronExpression, { name: taskCopy.id, paused: false, timezone: "UTC" }, () => {
+                            logger.info(`Executing scheduled task: ${taskCopy.name} (ID: ${taskCopy.id})`);
+                            executeScheduledTool(taskCopy).catch(err => {
+                                logger.error(`Unhandled exception during scheduled execution of task ${taskCopy.id}`, { error: err.message });
+                            });
                         });
-                        cronJobs.set(newTask.id, job);
-                        logger.info(`Created and scheduled new task "${newTask.name}" (ID: ${newTask.id})`);
+                        cronJobs.set(taskCopy.id, job);
+                        logger.info(`Created and scheduled new task "${taskCopy.name}" (ID: ${taskCopy.id}) targeting tool ${taskCopy.toolName}`);
                     } catch (error: any) {
-                        // Remove task if scheduling failed? Or keep it disabled? Let's keep it but log error.
                         logger.error(`Failed to schedule new task "${newTask.name}" (ID: ${newTask.id})`, { error: error.message, cron: newTask.cronExpression });
-                         // Optionally disable the task on schedule failure
-                         // newTask.enabled = false;
-                         // return { content: [{ type: "text", text: `Task created but failed to schedule: ${error.message}. Task is disabled.` }] };
-                         throw new Error(`Invalid cron expression or scheduling error: ${error.message}`);
+                        newTask.enabled = false;
+                        throw new Error(`任务 "${newTask.name}" 已创建但调度失败: ${error.message}. 任务已被禁用。`);
                     }
                 } else {
-                     logger.info(`Created disabled task "${newTask.name}" (ID: ${newTask.id})`);
+                    logger.info(`Created disabled task "${newTask.name}" (ID: ${newTask.id}) targeting tool ${resolvedToolName}`);
                 }
 
-                // Persist changes
                 await saveTasks();
-
                 return {
-                    content: [{ type: "text", text: `Task "${newTask.name}" created successfully with ID: ${newTask.id}` }]
+                    content: [{ type: "text", text: `任务 "${newTask.name}" (ID: ${newTask.id}) 创建成功，将执行工具: ${resolvedToolName}` }]
                 };
             } catch (error: any) {
-                logger.error('Failed to create scheduled task', { args, error: error.message });
-                return { content: [{ type: "text", text: `Error creating task: ${error.message}` }] };
+                await saveTasks().catch(saveErr => logger.error("Failed to save tasks after create error", {saveErr}));
+                logger.error('Failed to create scheduled task', { args: { ...args, toolName: args.toolName ?? 'N/A', toolQuery: args.toolQuery ?? 'N/A' }, error: error.message });
+                return { content: [{ type: "text", text: `创建任务出错: ${error.message}` }] };
             }
         }
     );
@@ -290,16 +336,13 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
         server,
         "[Schedule] getTaskDetails",
         "获取指定定时任务的详细信息。",
-        {
-            taskId: z.string().uuid().describe("要获取详情的任务 ID")
-        },
+        { taskId: z.string().uuid().describe("要获取详情的任务 ID") },
         async (args: { taskId: string }) => {
             try {
                 const task = scheduledTasks.find(t => t.id === args.taskId);
                 if (!task) {
                     return { content: [{ type: "text", text: `错误：未找到 ID 为 ${args.taskId} 的任务` }] };
                 }
-                // Return a copy
                 return { content: [{ type: "text", text: JSON.stringify({ ...task }, null, 2) }] };
             } catch (error: any) {
                  logger.error('Failed to get task details', { taskId: args.taskId, error: error.message });
@@ -308,40 +351,63 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
         }
     );
 
-     // == Update Task ==
+    // == Update Task ==
+    // Define the base shape without refine
+     const updateTaskShape = {
+        taskId: z.string().uuid().describe("要更新的任务 ID"),
+        name: z.string().min(1).optional().describe("新的任务名称"),
+        cronExpression: z.string().min(1).optional().describe("新的 Cron 表达式或间隔"),
+        toolName: z.string().min(1).optional().describe("要执行的 MCP 工具的【精确】完整名称"),
+        toolQuery: z.string().min(1).optional().describe("用于【模糊搜索】目标工具的自然语言描述或部分名称"),
+        toolParams: z.record(z.any()).optional().describe("新的工具参数对象"),
+        enabled: z.boolean().optional().describe("新的启用状态")
+     };
+    // Type inference helper
+    const updateTaskArgParser = z.object(updateTaskShape);
+    type UpdateTaskArgs = z.infer<typeof updateTaskArgParser>;
+
     registerTool(
         server,
         "[Schedule] updateTask",
-        "更新现有定时任务的配置。",
-        {
-            taskId: z.string().uuid().describe("要更新的任务 ID"),
-            name: z.string().min(1).optional().describe("新的任务名称"),
-            cronExpression: z.string().min(1).optional().describe("新的 Cron 表达式或间隔"),
-            toolName: z.string().min(1).optional().describe("新的目标 MCP 工具名称"),
-            toolParams: z.record(z.any()).optional().describe("新的工具参数对象"),
-            enabled: z.boolean().optional().describe("新的启用状态")
-        },
-        async (args: { taskId: string; name?: string; cronExpression?: string; toolName?: string; toolParams?: Record<string, any>; enabled?: boolean }) => {
+        "更新现有定时任务的配置。可以通过 'toolName' 或 'toolQuery' 更新目标工具。",
+        updateTaskShape, // Pass the raw shape
+        async (args: UpdateTaskArgs) => { // Use inferred type
+             // --- Manual Validation for toolName/toolQuery ---
+             if (args.toolName && args.toolQuery) {
+                 throw new Error("不能同时提供 'toolName' 和 'toolQuery'。");
+             }
+             // --- End Manual Validation ---
+
             try {
                 const taskIndex = scheduledTasks.findIndex(t => t.id === args.taskId);
                 if (taskIndex === -1) {
                     return { content: [{ type: "text", text: `错误：未找到 ID 为 ${args.taskId} 的任务` }] };
                 }
-
-                // Get a reference safely
                 let task = scheduledTasks[taskIndex];
-                if (!task) { // Extra check for TS
+                 if (!task) {
                      logger.error('Task became undefined after findIndex', { taskId: args.taskId });
                      return { content: [{ type: "text", text: `内部错误：无法引用任务 ${args.taskId}` }] };
-                }
+                 }
 
                 let updated = false;
                 let needsReschedule = false;
+                let resolvedToolName = task.toolName; // Start with current name
 
-                // Apply updates
+                if (args.toolQuery || args.toolName) { // Check if either is provided for update
+                    try {
+                        // Pass undefined if not provided, resolveToolNameSync handles it
+                        resolvedToolName = resolveToolNameSync(args.toolName, args.toolQuery);
+                        if (resolvedToolName !== task.toolName) {
+                            task.toolName = resolvedToolName;
+                            updated = true;
+                            logger.info(`Task ${task.id} target tool updated to: ${resolvedToolName}`);
+                        }
+                    } catch (resolveError: any) {
+                        return { content: [{ type: "text", text: `更新目标工具失败: ${resolveError.message}` }] };
+                    }
+                }
                 if (args.name !== undefined && args.name !== task.name) { task.name = args.name; updated = true; }
-                if (args.toolName !== undefined && args.toolName !== task.toolName) { task.toolName = args.toolName; updated = true; }
-                if (args.toolParams !== undefined /* Deep compare needed? */) { task.toolParams = args.toolParams; updated = true; }
+                if (args.toolParams !== undefined) { task.toolParams = args.toolParams; updated = true; }
                 if (args.cronExpression !== undefined && args.cronExpression !== task.cronExpression) {
                     task.cronExpression = args.cronExpression;
                     updated = true;
@@ -350,70 +416,61 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
                  if (args.enabled !== undefined && args.enabled !== task.enabled) {
                     task.enabled = args.enabled;
                     updated = true;
-                    needsReschedule = true; // Need to stop/start cron job
+                    needsReschedule = true;
                 }
 
                 if (!updated) {
                     return { content: [{ type: "text", text: `任务 ${args.taskId} 未做任何更改。` }] };
                 }
-
                 task.updatedAt = new Date().toISOString();
-
-                // Stop existing job if it needs rescheduling or disabling
                 const existingJob = cronJobs.get(task.id);
                 if (existingJob && (needsReschedule || !task.enabled)) {
                     existingJob.stop();
                     cronJobs.delete(task.id);
-                     logger.info(`Stopped cron job for updated/disabled task ${task.id}`);
+                    logger.info(`Stopped cron job for updated/disabled task ${task.id}`);
                 }
-
-                // Start new job if needed
-                if (task.enabled && needsReschedule) {
+                if (task.enabled && (needsReschedule || !existingJob)) {
                     try {
-                        const newJob = new Cron(task.cronExpression, { name: task.id, paused: false, timezone: "UTC" }, () => {
-                            logger.info(`Executing scheduled task: ${task.name} (ID: ${task.id})`);
-                            executeScheduledTool(task);
+                        const taskCopy = { ...task };
+                        const newJob = new Cron(taskCopy.cronExpression, { name: taskCopy.id, paused: false, timezone: "UTC" }, () => {
+                            logger.info(`Executing scheduled task: ${taskCopy.name} (ID: ${taskCopy.id})`);
+                             executeScheduledTool(taskCopy).catch(err => {
+                                logger.error(`Unhandled exception during scheduled execution of task ${taskCopy.id}`, { error: err.message });
+                             });
                         });
-                        cronJobs.set(task.id, newJob);
-                         logger.info(`Rescheduled task "${task.name}" (ID: ${task.id})`);
+                        cronJobs.set(taskCopy.id, newJob);
+                         logger.info(`Rescheduled/Scheduled task "${taskCopy.name}" (ID: ${taskCopy.id})`);
                     } catch (error: any) {
                         logger.error(`Failed to reschedule task "${task.name}" (ID: ${task.id}) after update`, { error: error.message });
-                        // Disable the task if rescheduling failed to prevent inconsistent state?
                         task.enabled = false;
-                        await saveTasks(); // Save the disabled state
-                         return { content: [{ type: "text", text: `任务更新成功，但在重新启用时调度失败: ${error.message}. 任务已被禁用。` }] };
+                        await saveTasks();
+                        return { content: [{ type: "text", text: `任务更新成功，但在重新启用/调度时失败: ${error.message}. 任务已被禁用。` }] };
                     }
                 }
-
-                // Persist
                 await saveTasks();
-
                 return { content: [{ type: "text", text: `任务 "${task.name}" (ID: ${task.id}) 更新成功。` }] };
-
             } catch (error: any) {
-                logger.error('Failed to update scheduled task', { args, error: error.message });
+                 await saveTasks().catch(saveErr => logger.error("Failed to save tasks after update error", {saveErr}));
+                logger.error('Failed to update scheduled task', { args: { taskId: args.taskId }, error: error.message });
                 return { content: [{ type: "text", text: `更新任务出错: ${error.message}` }] };
             }
         }
     );
 
-     // == Enable Task ==
+    // == Enable Task ==
     registerTool(
         server,
         "[Schedule] enableTask",
         "启用一个已禁用的定时任务。",
-        {
-            taskId: z.string().uuid().describe("要启用的任务 ID")
-        },
+         { taskId: z.string().uuid().describe("要启用的任务 ID") },
         async (args: { taskId: string }) => {
              try {
                  const taskIndex = scheduledTasks.findIndex(t => t.id === args.taskId);
                 if (taskIndex === -1) {
                     return { content: [{ type: "text", text: `错误：未找到 ID 为 ${args.taskId} 的任务` }] };
                 }
-                // Get a reference safely
                 let task = scheduledTasks[taskIndex];
-                if (!task) { // Extra check for TS
+                if (!task) {
                      logger.error('Task became undefined after findIndex', { taskId: args.taskId });
                      return { content: [{ type: "text", text: `内部错误：无法引用任务 ${args.taskId}` }] };
                 }
@@ -421,34 +478,30 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
                 if (task.enabled) {
                      return { content: [{ type: "text", text: `任务 "${task.name}" (ID: ${task.id}) 已经是启用状态。` }] };
                 }
-
-                // Enable the task
                 task.enabled = true;
                 task.updatedAt = new Date().toISOString();
 
-                 // Schedule the job
                 try {
                     const existingJob = cronJobs.get(task.id);
-                     if (existingJob) existingJob.stop(); // Stop if exists somehow
+                     if (existingJob) existingJob.stop();
 
-                    const newJob = new Cron(task.cronExpression, { name: task.id, paused: false, timezone: "UTC" }, () => {
-                        logger.info(`Executing scheduled task: ${task.name} (ID: ${task.id})`);
-                        executeScheduledTool(task);
+                    const taskCopy = { ...task };
+                    const newJob = new Cron(taskCopy.cronExpression, { name: taskCopy.id, paused: false, timezone: "UTC" }, () => {
+                        logger.info(`Executing scheduled task: ${taskCopy.name} (ID: ${taskCopy.id})`);
+                         executeScheduledTool(taskCopy).catch(err => {
+                             logger.error(`Unhandled exception during scheduled execution of task ${taskCopy.id}`, { error: err.message });
+                         });
                     });
-                    cronJobs.set(task.id, newJob);
-                     logger.info(`Enabled and scheduled task "${task.name}" (ID: ${task.id})`);
+                    cronJobs.set(taskCopy.id, newJob);
+                     logger.info(`Enabled and scheduled task "${taskCopy.name}" (ID: ${taskCopy.id})`);
                 } catch (error: any) {
                      logger.error(`Failed to schedule task "${task.name}" (ID: ${task.id}) upon enabling`, { error: error.message });
-                     // Revert enable status?
                      task.enabled = false;
-                     await saveTasks(); // Save reverted state
+                     await saveTasks();
                      return { content: [{ type: "text", text: `启用任务失败，无法调度: ${error.message}. 任务保持禁用状态。` }] };
                 }
-
-                // Persist
                 await saveTasks();
                 return { content: [{ type: "text", text: `任务 "${task.name}" (ID: ${task.id}) 已成功启用。` }] };
-
              } catch (error: any) {
                 logger.error('Failed to enable scheduled task', { taskId: args.taskId, error: error.message });
                 return { content: [{ type: "text", text: `启用任务出错: ${error.message}` }] };
@@ -456,47 +509,36 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
         }
     );
 
-     // == Disable Task ==
+    // == Disable Task ==
     registerTool(
         server,
         "[Schedule] disableTask",
         "禁用一个当前启用的定时任务。",
-        {
-            taskId: z.string().uuid().describe("要禁用的任务 ID")
-        },
+        { taskId: z.string().uuid().describe("要禁用的任务 ID") },
         async (args: { taskId: string }) => {
-            try {
+             try {
                 const taskIndex = scheduledTasks.findIndex(t => t.id === args.taskId);
                 if (taskIndex === -1) {
                     return { content: [{ type: "text", text: `错误：未找到 ID 为 ${args.taskId} 的任务` }] };
                 }
-                 // Get a reference safely
                 let task = scheduledTasks[taskIndex];
-                 if (!task) { // Extra check for TS
+                 if (!task) {
                      logger.error('Task became undefined after findIndex', { taskId: args.taskId });
                      return { content: [{ type: "text", text: `内部错误：无法引用任务 ${args.taskId}` }] };
                 }
-
                 if (!task.enabled) {
                     return { content: [{ type: "text", text: `任务 "${task.name}" (ID: ${task.id}) 已经是禁用状态。` }] };
                 }
-
-                // Disable the task
                 task.enabled = false;
                 task.updatedAt = new Date().toISOString();
-
-                // Stop the cron job
                 const existingJob = cronJobs.get(task.id);
                 if (existingJob) {
                     existingJob.stop();
                     cronJobs.delete(task.id);
                     logger.info(`Stopped cron job for disabled task ${task.id}`);
                 }
-
-                // Persist
                 await saveTasks();
                 return { content: [{ type: "text", text: `任务 "${task.name}" (ID: ${task.id}) 已成功禁用。` }] };
-
             } catch (error: any) {
                  logger.error('Failed to disable scheduled task', { taskId: args.taskId, error: error.message });
                  return { content: [{ type: "text", text: `禁用任务出错: ${error.message}` }] };
@@ -504,42 +546,33 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
         }
     );
 
-     // == Delete Task ==
+    // == Delete Task ==
     registerTool(
         server,
         "[Schedule] deleteTask",
         "永久删除一个定时任务。",
-        {
-            taskId: z.string().uuid().describe("要删除的任务 ID")
-        },
+        { taskId: z.string().uuid().describe("要删除的任务 ID") },
         async (args: { taskId: string }) => {
              try {
                 const taskIndex = scheduledTasks.findIndex(t => t.id === args.taskId);
                 if (taskIndex === -1) {
                     return { content: [{ type: "text", text: `错误：未找到 ID 为 ${args.taskId} 的任务` }] };
                 }
-                // Get a reference safely
                 let task = scheduledTasks[taskIndex];
-                 if (!task) { // Extra check for TS
+                 if (!task) {
                      logger.error('Task became undefined after findIndex', { taskId: args.taskId });
                      return { content: [{ type: "text", text: `内部错误：无法引用任务 ${args.taskId}` }] };
                 }
-
-                // Stop the cron job if active
                 const existingJob = cronJobs.get(task.id);
                 if (existingJob) {
                     existingJob.stop();
                     cronJobs.delete(task.id);
                     logger.info(`Stopped cron job for deleted task ${task.id}`);
                 }
-
-                // Remove from the list
+                const deletedTaskName = task.name;
                 scheduledTasks.splice(taskIndex, 1);
-
-                // Persist
                 await saveTasks();
-                 return { content: [{ type: "text", text: `任务 "${task.name}" (ID: ${task.id}) 已成功删除。` }] };
-
+                 return { content: [{ type: "text", text: `任务 "${deletedTaskName}" (ID: ${args.taskId}) 已成功删除。` }] };
              } catch (error: any) {
                 logger.error('Failed to delete scheduled task', { taskId: args.taskId, error: error.message });
                 return { content: [{ type: "text", text: `删除任务出错: ${error.message}` }] };
@@ -552,28 +585,22 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
         server,
         "[Schedule] runTaskNow",
         "立即手动执行一个定时任务，无论其当前启用状态或计划如何。",
-        {
-            taskId: z.string().uuid().describe("要立即执行的任务 ID")
-        },
+         { taskId: z.string().uuid().describe("要立即执行的任务 ID") },
         async (args: { taskId: string }) => {
-            try {
+             try {
                 const task = scheduledTasks.find(t => t.id === args.taskId);
                 if (!task) {
                     return { content: [{ type: "text", text: `错误：未找到 ID 为 ${args.taskId} 的任务` }] };
                 }
-
                 logger.info(`Manually triggering task: ${task.name} (ID: ${task.id})`);
-                // Call the actual execution logic (currently placeholder)
-                // We need to handle the promise and potential errors here
                 try {
                     await executeScheduledTool(task);
                     logger.info(`Manual execution of task ${task.id} completed.`);
-                     return { content: [{ type: "text", text: `任务 "${task.name}" (ID: ${task.id}) 已手动触发执行。` }] }; // Note: This response is immediate, execution is async.
+                    return { content: [{ type: "text", text: `任务 "${task.name}" (ID: ${task.id}) 已手动触发执行。` }] };
                 } catch (executionError: any) {
                      logger.error(`Manual execution of task ${task.id} failed`, { error: executionError.message || executionError });
                     return { content: [{ type: "text", text: `手动执行任务 "${task.name}" (ID: ${task.id}) 时出错: ${executionError.message}` }] };
                 }
-
             } catch (error: any) {
                 logger.error('Failed to manually run scheduled task', { taskId: args.taskId, error: error.message });
                 return { content: [{ type: "text", text: `手动运行任务出错: ${error.message}` }] };
@@ -582,7 +609,7 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
     );
 
     // == Get Task History ==
-    registerTool(
+     registerTool(
         server,
         "[Schedule] getTaskHistory",
         "获取指定定时任务的最近执行历史记录。",
@@ -591,17 +618,14 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
             limit: z.number().int().min(1).max(MAX_HISTORY_PER_TASK).optional().default(10).describe(`返回最近的记录条数 (默认 10, 最大 ${MAX_HISTORY_PER_TASK})`)
         },
         async (args: { taskId: string; limit: number }) => {
-            try {
+             try {
                 const task = scheduledTasks.find(t => t.id === args.taskId);
                 if (!task) {
                     return { content: [{ type: "text", text: `错误：未找到 ID 为 ${args.taskId} 的任务` }] };
                 }
-
                 const history = task.executionHistory || [];
                 const limitedHistory = history.slice(0, args.limit);
-
                 return { content: [{ type: "text", text: JSON.stringify(limitedHistory, null, 2) }] };
-
             } catch (error: any) {
                 logger.error('Failed to get task history', { taskId: args.taskId, error: error.message });
                 return { content: [{ type: "text", text: `获取任务历史出错: ${error.message}` }] };

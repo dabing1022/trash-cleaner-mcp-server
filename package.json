@@ -20,6 +20,7 @@
     "@modelcontextprotocol/sdk": "latest",
     "@types/node": "^22.14.1",
     "croner": "^9.0.0",
+    "fuse.js": "^7.1.0",
     "get-folder-size": "^5.0.0",
     "winston": "^3.17.0",
     "zod": "^3.24.2"
