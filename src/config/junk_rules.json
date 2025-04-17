@@ -1,0 +1,107 @@
+{
+  "caches": [
+    {
+      "description": "macOS User Caches",
+      "pathPattern": "~/Library/Caches/*",
+      "platforms": ["darwin"],
+      "maxDepth": 1
+    },
+    {
+      "description": "macOS Application Saved State",
+      "pathPattern": "~/Library/Saved Application State/*",
+      "platforms": ["darwin"],
+      "maxDepth": 1
+    },
+    {
+      "description": "Windows AppData Local Caches (Common Pattern)",
+      "pathPattern": "%LOCALAPPDATA%\\*\\Cache\\*",
+      "platforms": ["win32"],
+      "maxDepth": 2
+    },
+     {
+      "description": "Windows AppData Roaming Temp/Cache (Common Pattern)",
+      "pathPattern": "%APPDATA%\\*\\Temp\\*",
+      "platforms": ["win32"],
+      "maxDepth": 2
+    },
+    {
+        "description": "Windows ProgramData Caches (Common)",
+        "pathPattern": "%PROGRAMDATA%\\*\\Cache\\*",
+        "platforms": ["win32"],
+        "maxDepth": 2
+    },
+    {
+      "description": "macOS System Caches",
+      "pathPattern": "/Library/Caches/*",
+      "platforms": ["darwin"],
+      "maxDepth": 1
+    }
+  ],
+  "logs": [
+    {
+      "description": "macOS User Logs",
+      "pathPattern": "~/Library/Logs/*",
+      "platforms": ["darwin"],
+      "maxDepth": 1,
+      "minAgeDays": 7
+    },
+    {
+      "description": "macOS System Logs",
+      "pathPattern": "/var/log/*",
+      "platforms": ["darwin"],
+      "maxDepth": 1,
+      "minAgeDays": 14
+    },
+    {
+      "description": "Windows Event Logs (EVTX)",
+      "pathPattern": "%SystemRoot%\\System32\\Winevt\\Logs\\*.evtx",
+      "platforms": ["win32"],
+      "maxDepth": 0,
+      "minAgeDays": 30
+    },
+    {
+        "description": "Windows Temp Logs (Common Pattern)",
+        "pathPattern": "%TEMP%\\*.log",
+        "platforms": ["win32"],
+        "maxDepth": 0,
+        "minAgeDays": 7
+    },
+    {
+        "description": "Windows AppData Local Logs (Common Pattern)",
+        "pathPattern": "%LOCALAPPDATA%\\*\\Logs\\*.log",
+        "platforms": ["win32"],
+        "maxDepth": 2,
+        "minAgeDays": 14
+    }
+  ],
+  "tempFiles": [
+    {
+      "description": "macOS Private Temp Folders",
+      "pathPattern": "/private/var/folders/*/*/*/*",
+      "platforms": ["darwin"],
+      "maxDepth": 0,
+      "minAgeDays": 3
+    },
+     {
+      "description": "macOS /tmp",
+      "pathPattern": "/tmp/*",
+      "platforms": ["darwin"],
+      "maxDepth": 0,
+      "minAgeDays": 1
+    },
+    {
+      "description": "Windows Temp Folder",
+      "pathPattern": "%TEMP%\\*",
+      "platforms": ["win32"],
+      "maxDepth": 1,
+      "minAgeDays": 3
+    },
+    {
+      "description": "Windows Prefetch Files",
+      "pathPattern": "%SystemRoot%\\Prefetch\\*.pf",
+      "platforms": ["win32"],
+       "maxDepth": 0,
+       "minAgeDays": 30
+    }
+  ]
+} 

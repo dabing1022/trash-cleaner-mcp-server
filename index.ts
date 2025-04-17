@@ -2,12 +2,13 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { registerOsTools } from "./tools/os";
-import { registerFsTools } from "./tools/fs";
-import { registerScanTools } from "./tools/scan";
-import { registerCleanerTools } from "./tools/cleaner";
-import { registerAuditTools } from "./tools/audit";
-import { registerSchedulerTools } from "./tools/scheduler";
+import { registerOsTools } from "./src/tools/os";
+import { registerFsTools } from "./src/tools/fs";
+import { registerScanTools } from "./src/tools/scan";
+import { registerCleanerTools } from "./src/tools/cleaner";
+import { registerAuditTools } from "./src/tools/audit";
+import { registerSchedulerTools } from "./src/tools/scheduler";
+import { registerScanJunkFilesTool } from "./src/tools/scanJunkFiles";
 import pkg from './package.json' assert { type: 'json' };
 
 
@@ -20,6 +21,7 @@ registerOsTools(server);
 registerFsTools(server);
 registerCleanerTools(server);
 registerScanTools(server);
+registerScanJunkFilesTool(server);
 registerAuditTools(server);
 registerSchedulerTools(server);
 
