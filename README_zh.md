@@ -51,6 +51,8 @@
 **审计工具:**
 *   `viewAuditLog`: 查看应用程序主日志文件 (`combined.log`) 的最近日志行。
     *   选项: `lines` (整数, 默认: 100, 最大: 1000)。
+*   `clearAuditLog`: **删除**主应用程序日志文件 (`combined.log`)。需要确认。
+    *   选项: `confirm` (布尔值, 必须为 true)。
 
 ## 技术栈
 - Bun.js

@@ -53,6 +53,8 @@ This server registers several tools callable via the MCP protocol:
 **Audit Tools:**
 *   `viewAuditLog`: Views the most recent lines from the application's main log file (`combined.log`).
     *   Options: `lines` (int, default: 100, max: 1000).
+*   `clearAuditLog`: **Deletes** the main application log file (`combined.log`). Requires confirmation.
+    *   Options: `confirm` (bool, must be true).
 
 ## Tech Stack
 - Bun.js
