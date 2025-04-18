@@ -412,7 +412,6 @@ export async function forceDeleteFile(filePath: string): Promise<{ success: bool
   }
 }
 
-// 为了向后兼容，我们保留原始函数名，但内部调用新函数
 export async function forceDeletePath(filePath: string): Promise<{ success: boolean; message: string }> {
   return forceDeleteFile(filePath);
 }

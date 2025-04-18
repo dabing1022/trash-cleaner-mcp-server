@@ -90,6 +90,7 @@ export interface CleaningOptions {
   excludePatterns?: string[]; // 排除的文件名模式
   includeHidden?: boolean;  // 是否包含隐藏文件
   olderThan?: number;       // 清理早于指定天数的文件
+  useTrash?: boolean;       // 是否移到垃圾桶
 }
 
 // 默认清理选项
@@ -99,5 +100,6 @@ export const DEFAULT_CLEANING_OPTIONS: CleaningOptions = {
   maxDepth: 3,
   excludePatterns: [],
   includeHidden: false,
-  olderThan: 30
+  olderThan: 30,
+  useTrash: false,
 }; 

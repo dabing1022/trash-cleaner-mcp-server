@@ -12,12 +12,11 @@ import {
     calculateFileHash,
     getFileInfo,
     formatFileInfo,
-    forceDeleteFile,
-    forceDeletePath,
-    checkPathExists
-} from "../utils/fileUtils";
+    checkPathExists,
+} from "../utils/fileUtils.js";
 import { expandHomeDir } from "../utils/pathUtil";
 import { isDangerousTarget } from "../utils/dangerPatterns";
+import { safeDeletePath } from "../utils/cleanerUtils.js";
 
 export function registerFsTools(server: McpServer) {
     // 获取文件夹大小
@@ -238,17 +237,18 @@ export function registerFsTools(server: McpServer) {
         }
     );
 
-    // 删除文件
+    // 删除文件或文件夹（支持移到垃圾桶）
     registerTool(
         server,
         "[Fs] deletePath",
-        "删除指定文件或文件夹，需用户确认。",
+        "删除指定文件或文件夹。默认永久删除，可通过 useTrash 选项移到系统垃圾桶。需用户确认。",
         {
             path: z.string().describe("要删除的文件或文件夹路径"),
+            useTrash: z.boolean().optional().default(false).describe("为 true 时移到垃圾桶，否则永久删除"),
             confirm: z.boolean().describe("是否确认删除，必须为 true 才会执行删除"),
             dangerConfirm: z.boolean().optional().describe("高危操作再次确认，必须为 true 才能删除高危路径")
         },
-        async (args: { path: string; confirm: boolean; dangerConfirm?: boolean }) => {
+        async (args: { path: string; useTrash?: boolean; confirm: boolean; dangerConfirm?: boolean }) => {
             if (!args.confirm) {
                 return {
                     content: [{ type: "text", text: "危险操作！请确认是否删除该路径。请将 confirm 参数设置为 true 后再执行。" }]
@@ -259,11 +259,25 @@ export function registerFsTools(server: McpServer) {
                     content: [{ type: "text", text: "高危路径！请再次确认，dangerConfirm 参数必须为 true 才能删除。" }]
                 };
             }
-            // 真实删除逻辑
+            // 真实删除逻辑 - 使用 safeDeletePath
             try {
-                const result = await forceDeletePath(expandHomeDir(args.path));
+                const result = await safeDeletePath(expandHomeDir(args.path), {
+                    useTrash: args.useTrash,
+                    dryRun: false
+                });
+                
+                let message = "";
+                if (result.success) {
+                    message = args.useTrash 
+                        ? `路径 "${args.path}" 已成功移动到垃圾桶。` 
+                        : `路径 "${args.path}" 已成功永久删除。`;
+                    message += ` 清理大小: ${(result.size / 1024).toFixed(2)} KB`;
+                } else {
+                    message = `删除路径 "${args.path}" 失败: ${result.error || '未知错误'}`;
+                }
+                
                 return {
-                    content: [{ type: "text", text: result.message }]
+                    content: [{ type: "text", text: message }]
                 };
             } catch (error: any) {
                 return {

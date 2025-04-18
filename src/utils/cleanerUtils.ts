@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { execSync } from 'child_process';
+import trash from 'trash';
 import type { CleaningOptions, CleaningResult } from './cleanerPaths';
 import { DEFAULT_CLEANING_OPTIONS } from './cleanerPaths';
 
@@ -48,7 +49,7 @@ export async function isFileOlderThan(filePath: string, days: number): Promise<b
 }
 
 /**
- * 安全删除路径（文件或目录）
+ * 安全删除路径（可选移到垃圾桶）
  * @param targetPath 目标路径
  * @param options 清理选项
  * @returns 删除结果
@@ -58,10 +59,8 @@ export async function safeDeletePath(
   options: CleaningOptions = DEFAULT_CLEANING_OPTIONS
 ): Promise<{ success: boolean; size: number; error?: string }> {
   try {
-    // 检查文件是否存在
+    // 检查文件是否存在并获取大小
     const stats = await fs.stat(targetPath);
-    
-    // 获取文件大小
     const size = await getPathSize(targetPath);
     
     // 如果是模拟运行模式，仅返回信息不实际删除
@@ -69,23 +68,31 @@ export async function safeDeletePath(
       return { success: true, size };
     }
     
-    // 根据文件类型执行不同的删除操作
-    if (stats.isDirectory()) {
-      await fs.rm(targetPath, { recursive: true, force: true });
+    // 根据 useTrash 选项决定操作
+    if (options.useTrash) {
+      // 移动到操作系统垃圾桶
+      await trash([targetPath]);
+      return { success: true, size };
     } else {
-      await fs.unlink(targetPath);
+      // 直接删除（旧逻辑）
+      if (stats.isDirectory()) {
+        await fs.rm(targetPath, { recursive: true, force: true });
+      } else {
+        await fs.unlink(targetPath);
+      }
+      return { success: true, size };
     }
     
-    return { success: true, size };
   } catch (error: any) {
-    // 尝试使用系统命令强制删除
+    // 尝试使用系统命令强制删除 (保留回退逻辑)
     try {
       if (!options.dryRun) {
         execSync(`rm -rf "${targetPath}"`);
-        const size = 0; // 无法得知已删除文件的大小
-        return { success: true, size };
+        // 强制删除后无法知道确切大小，返回0
+        return { success: true, size: 0 }; 
       }
-      return { success: false, size: 0, error: error.message };
+      // 如果是 dryRun 模式，则返回失败和错误信息
+      return { success: false, size: 0, error: `模拟删除失败: ${error.message || String(error)}` };
     } catch (forceError: any) {
       return { 
         success: false, 
