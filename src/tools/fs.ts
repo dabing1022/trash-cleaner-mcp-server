@@ -17,6 +17,8 @@ import {
 import { expandHomeDir } from "../utils/pathUtil";
 import { isDangerousTarget } from "../utils/dangerPatterns";
 import { safeDeletePath } from "../utils/cleanerUtils.js";
+import { exec } from "child_process";
+import os from "os";
 
 export function registerFsTools(server: McpServer) {
     // 获取文件夹大小
@@ -311,6 +313,57 @@ export function registerFsTools(server: McpServer) {
             } catch (error: any) {
                 return {
                     content: [{ type: "text", text: `检查失败: ${error.message || String(error)}` }]
+                };
+            }
+        }
+    );
+
+    // 清空垃圾桶 (新工具)
+    registerTool(
+        server,
+        "[Fs] emptyTrash",
+        "清空操作系统垃圾桶。这是一个不可恢复的操作！请谨慎使用。",
+        {
+            confirm: z.boolean().describe("必须将此参数设置为 true 才能执行清空操作")
+        },
+        async (args: { confirm: boolean }) => {
+            if (!args.confirm) {
+                return {
+                    content: [{ type: "text", text: "未确认操作！请将 confirm 参数设置为 true 以清空垃圾桶。" }]
+                };
+            }
+
+            let command = "";
+            if (process.platform === 'darwin') { // macOS
+                // 使用 AppleScript 调用 Finder 清空垃圾桶，更安全
+                command = 'osascript -e \'tell application "Finder" to empty trash\'';
+            } else if (process.platform === 'win32') { // Windows
+                // 使用 PowerShell 清空回收站
+                command = 'powershell.exe -Command "Clear-RecycleBin -Force"';
+            } else { // Linux 或其他
+                // Linux 清理比较复杂，暂不支持，或可尝试 rm 命令（风险较高）
+                // command = 'rm -rf ~/.local/share/Trash/files/* ~/.local/share/Trash/info/*';
+                return {
+                    content: [{ type: "text", text: `当前操作系统 (${process.platform}) 暂不支持自动清空垃圾桶。` }]
+                };
+            }
+
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    exec(command, (error, stdout, stderr) => {
+                        if (error) {
+                            reject(new Error(`执行命令失败: ${stderr || error.message}`));
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+                return {
+                    content: [{ type: "text", text: "操作系统垃圾桶已成功清空。" }]
+                };
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `清空垃圾桶失败: ${error.message || String(error)}` }]
                 };
             }
         }
