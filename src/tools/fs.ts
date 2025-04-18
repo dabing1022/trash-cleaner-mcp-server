@@ -18,7 +18,6 @@ import { expandHomeDir } from "../utils/pathUtil";
 import { isDangerousTarget } from "../utils/dangerPatterns";
 import { safeDeletePath } from "../utils/cleanerUtils.js";
 import { exec } from "child_process";
-import os from "os";
 
 export function registerFsTools(server: McpServer) {
     // 获取文件夹大小
@@ -79,13 +78,13 @@ export function registerFsTools(server: McpServer) {
         async (args: { path: string; pattern: string; maxDepth: number }) => {
             try {
                 const results = await findFilesInDirectory(args.path, args.pattern, args.maxDepth);
-                
+
                 if (results.length === 0) {
                     return {
                         content: [{ type: "text", text: "未找到匹配的文件" }]
                     };
                 }
-                
+
                 return {
                     content: [{ type: "text", text: results.join('\n') }]
                 };
@@ -112,19 +111,19 @@ export function registerFsTools(server: McpServer) {
         async (args: { path: string; pattern: string; maxDepth: number; includeFiles: boolean; includeDirectories: boolean }) => {
             try {
                 const results = await findPathsInDirectory(
-                    args.path, 
-                    args.pattern, 
-                    args.maxDepth, 
-                    args.includeFiles, 
+                    args.path,
+                    args.pattern,
+                    args.maxDepth,
+                    args.includeFiles,
                     args.includeDirectories
                 );
-                
+
                 if (results.length === 0) {
                     return {
                         content: [{ type: "text", text: "未找到匹配的路径" }]
                     };
                 }
-                
+
                 return {
                     content: [{ type: "text", text: results.join('\n') }]
                 };
@@ -149,13 +148,13 @@ export function registerFsTools(server: McpServer) {
         async (args: { path: string; pattern: string; maxDepth: number }) => {
             try {
                 const results = await findDirectoriesInDirectory(args.path, args.pattern, args.maxDepth);
-                
+
                 if (results.length === 0) {
                     return {
                         content: [{ type: "text", text: "未找到匹配的文件夹" }]
                     };
                 }
-                
+
                 return {
                     content: [{ type: "text", text: results.join('\n') }]
                 };
@@ -180,7 +179,7 @@ export function registerFsTools(server: McpServer) {
             try {
                 const stats = await analyzeDirectoryContents(args.path, args.includeSubdirs);
                 const output = formatDirectoryAnalysis(stats, args.path);
-                
+
                 return {
                     content: [{ type: "text", text: output }]
                 };
@@ -227,7 +226,7 @@ export function registerFsTools(server: McpServer) {
             try {
                 const fileInfo = await getFileInfo(args.path);
                 const output = formatFileInfo(fileInfo);
-                
+
                 return {
                     content: [{ type: "text", text: output }]
                 };
@@ -267,17 +266,17 @@ export function registerFsTools(server: McpServer) {
                     useTrash: args.useTrash,
                     dryRun: false
                 });
-                
+
                 let message = "";
                 if (result.success) {
-                    message = args.useTrash 
-                        ? `路径 "${args.path}" 已成功移动到垃圾桶。` 
+                    message = args.useTrash
+                        ? `路径 "${args.path}" 已成功移动到垃圾桶。`
                         : `路径 "${args.path}" 已成功永久删除。`;
                     message += ` 清理大小: ${(result.size / 1024).toFixed(2)} KB`;
                 } else {
                     message = `删除路径 "${args.path}" 失败: ${result.error || '未知错误'}`;
                 }
-                
+
                 return {
                     content: [{ type: "text", text: message }]
                 };
@@ -300,7 +299,7 @@ export function registerFsTools(server: McpServer) {
         async (args: { path: string }) => {
             try {
                 const result = await checkPathExists(expandHomeDir(args.path));
-                
+
                 if (result.exists) {
                     return {
                         content: [{ type: "text", text: `路径 "${args.path}" 存在，类型: ${result.type}` }]
