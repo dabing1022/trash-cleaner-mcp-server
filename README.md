@@ -72,22 +72,22 @@ This server registers several tools callable via the MCP protocol:
 *   `clearAuditLog`: **Deletes** the main application log file (`combined.log`). Requires confirmation.
     *   Options: `confirm` (bool, must be true).
 
-### Scheduled Tasks (`[Schedule] Tools)
+### Scheduled Tasks (`TrashCleaner_Scheduler` Tools)
 
 Provides functionality to schedule the execution of other registered tools.
 
-*   **`[Schedule] createTask`**: Creates a new scheduled task.
+*   **`TrashCleaner_Scheduler_CreateTask`**: Creates a new scheduled task.
     *   Requires `name`, `cronExpression`.
-    *   Requires *either* `toolName` (exact tool name like `"[TrashCleaner] cleanAppCaches"`) *or* `toolQuery` (fuzzy description like `"清理应用缓存"`).
+    *   Requires *either* `toolName` (exact tool name like `"TrashCleaner_CleanAppCaches"`) *or* `toolQuery` (fuzzy description like `"clean app caches"`).
     *   Optional `toolParams`, `enabled`.
-*   **`[Schedule] listTasks`**: Lists all configured scheduled tasks and their status.
-*   **`[Schedule] getTaskDetails`**: Gets detailed information about a specific task by ID.
-*   **`[Schedule] updateTask`**: Updates an existing task. Can modify name, schedule, target tool (via `toolName` or `toolQuery`), parameters, and enabled status.
-*   **`[Schedule] enableTask`**: Enables a disabled task.
-*   **`[Schedule] disableTask`**: Disables an enabled task.
-*   **`[Schedule] deleteTask`**: Permanently deletes a scheduled task.
-*   **`[Schedule] runTaskNow`**: Manually triggers the execution of a task immediately.
-*   **`[Schedule] getTaskHistory`**: Retrieves the recent execution history (success/failure) for a task.
+*   **`TrashCleaner_Scheduler_ListTasks`**: Lists all configured scheduled tasks and their status.
+*   **`TrashCleaner_Scheduler_GetTaskDetails`**: Gets detailed information about a specific task by ID.
+*   **`TrashCleaner_Scheduler_UpdateTask`**: Updates an existing task. Can modify name, schedule, target tool (via `toolName` or `toolQuery`), parameters, and enabled status.
+*   **`TrashCleaner_Scheduler_EnableTask`**: Enables a disabled task.
+*   **`TrashCleaner_Scheduler_DisableTask`**: Disables an enabled task.
+*   **`TrashCleaner_Scheduler_DeleteTask`**: Permanently deletes a scheduled task.
+*   **`TrashCleaner_Scheduler_RunTaskNow`**: Manually triggers the execution of a task immediately.
+*   **`TrashCleaner_Scheduler_GetTaskHistory`**: Retrieves the recent execution history (success/failure) for a task.
 
 ## Tech Stack
 - Bun.js

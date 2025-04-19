@@ -68,22 +68,22 @@
 *   `clearAuditLog`: **删除**主应用程序日志文件 (`combined.log`)。需要确认。
     *   选项: `confirm` (布尔值, 必须为 true)。
 
-### 定时任务 (`[Schedule]` 工具)
+### 定时任务 (`TrashCleaner_Scheduler` 工具)
 
 提供调度执行其他已注册工具的功能。
 
-*   **`[Schedule] createTask`**: 创建一个新的定时任务。
+*   **`TrashCleaner_Scheduler_CreateTask`**: 创建一个新的定时任务。
     *   需要 `name`, `cronExpression`。
-    *   需要 *二选一*：`toolName` (精确工具名，如 `"[TrashCleaner] cleanAppCaches"`) *或* `toolQuery` (模糊描述，如 `"清理应用缓存"`)。
+    *   需要 *二选一*：`toolName` (精确工具名，如 `"TrashCleaner_CleanAppCaches"`) *或* `toolQuery` (模糊描述，如 `"清理应用缓存"`)。
     *   可选 `toolParams`, `enabled`。
-*   **`[Schedule] listTasks`**: 列出所有已配置的定时任务及其状态。
-*   **`[Schedule] getTaskDetails`**: 获取指定 ID 任务的详细信息。
-*   **`[Schedule] updateTask`**: 更新现有任务。可修改名称、计划、目标工具（通过 `toolName` 或 `toolQuery`）、参数和启用状态。
-*   **`[Schedule] enableTask`**: 启用一个已禁用的任务。
-*   **`[Schedule] disableTask`**: 禁用一个已启用的任务。
-*   **`[Schedule] deleteTask`**: 永久删除一个定时任务。
-*   **`[Schedule] runTaskNow`**: 立即手动触发执行一个任务。
-*   **`[Schedule] getTaskHistory`**: 获取任务最近的执行历史（成功/失败）。
+*   **`TrashCleaner_Scheduler_ListTasks`**: 列出所有已配置的定时任务及其状态。
+*   **`TrashCleaner_Scheduler_GetTaskDetails`**: 获取指定 ID 任务的详细信息。
+*   **`TrashCleaner_Scheduler_UpdateTask`**: 更新现有任务。可修改名称、计划、目标工具（通过 `toolName` 或 `toolQuery`）、参数和启用状态。
+*   **`TrashCleaner_Scheduler_EnableTask`**: 启用一个已禁用的任务。
+*   **`TrashCleaner_Scheduler_DisableTask`**: 禁用一个已启用的任务。
+*   **`TrashCleaner_Scheduler_DeleteTask`**: 永久删除一个定时任务。
+*   **`TrashCleaner_Scheduler_RunTaskNow`**: 立即手动触发执行一个任务。
+*   **`TrashCleaner_Scheduler_GetTaskHistory`**: 获取任务最近的执行历史（成功/失败）。
 
 ## 技术栈
 - Bun.js
