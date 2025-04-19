@@ -12,7 +12,7 @@ import fs from "fs/promises";
 export function registerAuditTools(server: McpServer) {
     registerTool(
         server,
-        "[Audit] viewAuditLog",
+        "Audit_ViewAuditLog",
         "查看应用程序最近的运行日志（combined.log）。",
         {
             lines: z.number().int().min(1).max(1000).default(100).describe("要查看的最近日志行数 (默认 100, 最大 1000)")
@@ -60,7 +60,7 @@ export function registerAuditTools(server: McpServer) {
     // 清理日志工具
     registerTool(
         server,
-        "[Audit] clearAuditLog",
+        "Audit_ClearAuditLog",
         "清空应用程序的主运行日志文件（combined.log）。这是一个破坏性操作，请谨慎使用！",
         {
             confirm: z.boolean().describe("必须设置为 true 才能执行清空操作。")

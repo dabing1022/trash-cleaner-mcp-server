@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { logger } from "./logger"; // Assuming logger is available here
 
-const TOOL_PREFIX = "[TrashCleaner] ";
+const TOOL_PREFIX = "TrashCleaner_";
 
 // 定义工具实现函数的类型别名
 type ToolImplementation = (args: any) => Promise<{ content: Array<{ type: "text"; text: string }> }>;

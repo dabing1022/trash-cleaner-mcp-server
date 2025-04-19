@@ -23,7 +23,7 @@ export function registerFsTools(server: McpServer) {
     // 获取文件夹大小
     registerTool(
         server,
-        "[Fs] getFolderSize",
+        "Fs_GetFolderSize",
         "获取指定文件夹的大小（字节）。",
         {
             path: z.string().describe("文件夹路径")
@@ -45,7 +45,7 @@ export function registerFsTools(server: McpServer) {
     // 列出目录内容
     registerTool(
         server,
-        "[Fs] listDirectory",
+        "Fs_ListDirectory",
         "列出指定目录下的所有文件和子目录。",
         {
             path: z.string().describe("目录路径"),
@@ -68,7 +68,7 @@ export function registerFsTools(server: McpServer) {
     // 查找文件
     registerTool(
         server,
-        "[Fs] findFiles",
+        "Fs_FindFiles",
         "在指定目录中查找符合条件的文件。",
         {
             path: z.string().describe("起始目录路径"),
@@ -99,7 +99,7 @@ export function registerFsTools(server: McpServer) {
     // 查找文件和目录（新工具）
     registerTool(
         server,
-        "[Fs] findPaths",
+        "Fs_FindPaths",
         "在指定目录中查找符合条件的文件和文件夹。",
         {
             path: z.string().describe("起始目录路径"),
@@ -138,7 +138,7 @@ export function registerFsTools(server: McpServer) {
     // 查找目录（新工具）
     registerTool(
         server,
-        "[Fs] findDirectories",
+        "Fs_FindDirectories",
         "在指定目录中查找符合条件的文件夹。",
         {
             path: z.string().describe("起始目录路径"),
@@ -169,7 +169,7 @@ export function registerFsTools(server: McpServer) {
     // 文件统计
     registerTool(
         server,
-        "[Fs] analyzeDirectory",
+        "Fs_AnalyzeDirectory",
         "分析目录中文件的类型分布、大小分布等信息。",
         {
             path: z.string().describe("目录路径"),
@@ -194,7 +194,7 @@ export function registerFsTools(server: McpServer) {
     // 计算文件哈希
     registerTool(
         server,
-        "[Fs] getFileHash",
+        "Fs_GetFileHash",
         "计算文件的 MD5/SHA256 哈希值，用于文件完整性校验。",
         {
             path: z.string().describe("文件路径"),
@@ -217,7 +217,7 @@ export function registerFsTools(server: McpServer) {
     // 检查文件类型
     registerTool(
         server,
-        "[Fs] getFileType",
+        "Fs_GetFileType",
         "获取文件的MIME类型和基本信息。",
         {
             path: z.string().describe("文件路径")
@@ -241,7 +241,7 @@ export function registerFsTools(server: McpServer) {
     // 删除文件或文件夹（支持移到垃圾桶）
     registerTool(
         server,
-        "[Fs] deletePath",
+        "Fs_DeletePath",
         "删除指定文件或文件夹。默认永久删除，可通过 useTrash 选项移到系统垃圾桶。需用户确认。",
         {
             path: z.string().describe("要删除的文件或文件夹路径"),
@@ -291,7 +291,7 @@ export function registerFsTools(server: McpServer) {
     // 检查路径是否存在
     registerTool(
         server,
-        "[Fs] checkPathExists",
+        "Fs_CheckPathExists",
         "检查指定的文件或目录路径是否存在。",
         {
             path: z.string().describe("要检查的文件或目录路径")
@@ -320,7 +320,7 @@ export function registerFsTools(server: McpServer) {
     // 清空垃圾桶 (新工具)
     registerTool(
         server,
-        "[Fs] emptyTrash",
+        "Fs_EmptyTrash",
         "清空操作系统垃圾桶。这是一个不可恢复的操作！请谨慎使用。",
         {
             confirm: z.boolean().describe("必须将此参数设置为 true 才能执行清空操作")

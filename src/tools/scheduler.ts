@@ -232,7 +232,7 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
     // == Task Listing ==
     registerTool(
         server,
-        "[Schedule] listTasks",
+        "Schedule_ListTasks",
         "列出所有已配置的定时任务及其状态。",
         {},
         async () => {
@@ -274,7 +274,7 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
 
     registerTool(
         server,
-        "[Schedule] createTask",
+        "Schedule_CreateTask",
         "创建一个新的定时任务。可以通过 'toolName' 指定精确工具名，或通过 'toolQuery' 进行模糊搜索。",
         createTaskShape, // Pass the raw shape
         async (args: CreateTaskArgs) => { // Use inferred type
@@ -339,7 +339,7 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
     // == Get Task Details ==
     registerTool(
         server,
-        "[Schedule] getTaskDetails",
+        "Schedule_GetTaskDetails",
         "获取指定定时任务的详细信息。",
         { taskId: z.string().uuid().describe("要获取详情的任务 ID") },
         async (args: { taskId: string }) => {
@@ -373,7 +373,7 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
 
     registerTool(
         server,
-        "[Schedule] updateTask",
+        "Schedule_UpdateTask",
         "更新现有定时任务的配置。可以通过 'toolName' 或 'toolQuery' 更新目标工具。",
         updateTaskShape, // Pass the raw shape
         async (args: UpdateTaskArgs) => { // Use inferred type
@@ -465,7 +465,7 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
     // == Enable Task ==
     registerTool(
         server,
-        "[Schedule] enableTask",
+        "Schedule_EnableTask",
         "启用一个已禁用的定时任务。",
          { taskId: z.string().uuid().describe("要启用的任务 ID") },
         async (args: { taskId: string }) => {
@@ -517,7 +517,7 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
     // == Disable Task ==
     registerTool(
         server,
-        "[Schedule] disableTask",
+        "Schedule_DisableTask",
         "禁用一个当前启用的定时任务。",
         { taskId: z.string().uuid().describe("要禁用的任务 ID") },
         async (args: { taskId: string }) => {
@@ -554,7 +554,7 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
     // == Delete Task ==
     registerTool(
         server,
-        "[Schedule] deleteTask",
+        "Schedule_DeleteTask",
         "永久删除一个定时任务。",
         { taskId: z.string().uuid().describe("要删除的任务 ID") },
         async (args: { taskId: string }) => {
@@ -588,7 +588,7 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
     // == Run Task Now ==
     registerTool(
         server,
-        "[Schedule] runTaskNow",
+        "Schedule_RunTaskNow",
         "立即手动执行一个定时任务，无论其当前启用状态或计划如何。",
          { taskId: z.string().uuid().describe("要立即执行的任务 ID") },
         async (args: { taskId: string }) => {
@@ -616,7 +616,7 @@ export async function registerSchedulerTools(server: McpServer): Promise<void> {
     // == Get Task History ==
      registerTool(
         server,
-        "[Schedule] getTaskHistory",
+        "Schedule_GetTaskHistory",
         "获取指定定时任务的最近执行历史记录。",
         {
             taskId: z.string().uuid().describe("要获取历史记录的任务 ID"),

@@ -147,7 +147,7 @@ async function scanByCategory(
 export function registerScanJunkFilesTool(server: McpServer) {
     registerTool(
         server,
-        "[Scan] scanJunkFiles",
+        "Scan_ScanJunkFiles",
         "扫描常见类型的垃圾文件 (缓存, 临时文件, 日志等)。依赖于 junk_rules.json 配置文件。",
         // 输入 Schema 使用 ZodRawShape 定义
         {
