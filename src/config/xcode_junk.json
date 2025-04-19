@@ -1,0 +1,121 @@
+{
+  "xcode_junk_definitions": [
+    {
+      "id": "xcode_app_cache",
+      "title": "Xcode 应用缓存",
+      "description": "Xcode 应用程序本身的缓存文件。",
+      "paths": [
+        "~/Library/Caches/com.apple.dt.Xcode/",
+        "{SystemTempDir}/com.apple.dt.Xcode" 
+      ],
+      "path_type": ["home_relative", "system_temp_relative"], 
+      "type": "cache",
+      "recommend": true
+    },
+    {
+      "id": "xcode_derived_data",
+      "title": "Xcode DerivedData",
+      "description": "Xcode 项目构建时生成的中间文件和索引。",
+      "paths": [
+        "~/Library/Developer/Xcode/DerivedData/"
+      ],
+      "path_type": ["home_relative"],
+      "type": "derived_data",
+      "recommend": true 
+    },
+    {
+      "id": "xcode_module_cache",
+      "title": "模块缓存",
+      "description": "Xcode Swift 和 Clang 模块缓存。",
+       "paths": [
+        "~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/"
+      ],
+      "path_type": ["home_relative"],
+      "type": "cache",
+      "recommend": true
+    },
+    {
+      "id": "xcode_ios_device_support",
+      "title": "iOS 设备支持",
+      "description": "用于支持特定 iOS 版本的设备符号文件，删除后可在需要时重新下载。",
+      "paths": [
+        "~/Library/Developer/Xcode/iOS DeviceSupport/"
+      ],
+      "path_type": ["home_relative"],
+      "type": "device_support",
+      "recommend": false
+    },
+    {
+      "id": "xcode_macos_device_support",
+      "title": "macOS 设备支持",
+      "description": "用于支持特定 macOS 版本的设备符号文件。",
+      "paths": [
+        "~/Library/Developer/Xcode/macOS DeviceSupport/"
+      ],
+      "path_type": ["home_relative"],
+      "type": "device_support",
+      "recommend": false
+    },
+    {
+      "id": "xcode_archives",
+      "title": "Archives",
+      "description": "Xcode 项目的归档文件 (.xcarchive)。",
+      "paths": [
+        "~/Library/Developer/Xcode/Archives/"
+      ],
+      "path_type": ["home_relative"],
+      "scan_options": {
+         "filename_pattern": ".+\\.xcarchive",
+         "recursive": true 
+      },
+      "type": "archive",
+      "recommend": false
+    },
+    {
+      "id": "xcode_device_logs",
+      "title": "设备日志",
+      "description": "来自物理连接设备的日志文件。",
+      "paths": [
+        "~/Library/Developer/Xcode/iOS Device Logs/",
+        "~/Library/Developer/Xcode/DeviceLogs/"
+      ],
+       "path_type": ["home_relative", "home_relative"],
+      "type": "log",
+      "recommend": false
+    },
+    {
+      "id": "xcode_doc_cache",
+      "title": "文档缓存",
+      "description": "Xcode 下载的 API 文档缓存。",
+      "paths": [
+        "~/Library/Developer/Xcode/DocumentationCache/"
+      ],
+       "path_type": ["home_relative"],
+      "type": "cache",
+      "recommend": false
+    },
+    {
+      "id": "xcode_simulator_data",
+      "title": "模拟器数据",
+      "description": "iOS、watchOS 等模拟器的核心数据和设备状态。",
+      "paths": [
+        "~/Library/Developer/CoreSimulator/"
+      ],
+      "path_type": ["home_relative"],
+      "type": "simulator_data",
+      "recommend": false
+    },
+    {
+      "id": "xcode_simulator_runtimes",
+      "title": "模拟器运行时",
+      "description": "模拟器运行时环境，通常占用较大空间。注意：路径可能包含挂载点。",
+      "paths": [
+        "/Library/Developer/CoreSimulator/Profiles/Runtimes/",
+         "/Library/Developer/CoreSimulator/Volumes/*/Library/Developer/CoreSimulator/Profiles/Runtimes/" 
+      ],
+      "path_type": ["absolute", "absolute_pattern"],
+      "type": "simulator_runtime",
+      "recommend": false
+    }
+  ]
+} 

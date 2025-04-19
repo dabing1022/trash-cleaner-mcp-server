@@ -11,6 +11,7 @@ import { registerSchedulerTools } from "./src/tools/scheduler";
 import { registerScanJunkFilesTool } from "./src/tools/scanJunkFiles";
 import { registerJunkRulesResource } from "./src/resources/junkRules";
 import pkg from './package.json' assert { type: 'json' };
+import { registerXcodeJunkRulesResource } from "./src/resources/xcodeJunk";
 
 
 const server = new McpServer({
@@ -20,7 +21,7 @@ const server = new McpServer({
   capabilities: {
     tools: { list: true, call: true },
     resources: { list: true, read: true, listChanged: true },
-    prompts: { list: true, get: true }
+    // prompts: { list: true, get: true }
   }
 });
 
@@ -34,9 +35,7 @@ registerSchedulerTools(server);
 
 // --- 注册资源处理器 ---
 registerJunkRulesResource(server);
-
-console.log('欢迎使用智能垃圾清理 MCP 服务！');
-console.log('本工具将帮助您扫描和清理电脑中的垃圾文件。');
+registerXcodeJunkRulesResource(server);
 
 // 启动 MCP 服务
 const transport = new StdioServerTransport();
