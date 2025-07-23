@@ -94,10 +94,20 @@ Provides functionality to schedule the execution of other registered tools.
 - TypeScript
 
 ## Usage
-After publishing to npm, you can run MCP via bunx:
+After publishing to npm, you can run the MCP server using either Bun or npm:
 
+**Using Bun:**
 ```sh
 bunx @childhoodandy/trash-cleaner-mcp-server
+# or with auto-install
+bunx -y @childhoodandy/trash-cleaner-mcp-server
+```
+
+**Using npm:**
+```sh
+npx @childhoodandy/trash-cleaner-mcp-server
+# or with auto-install
+npx -y @childhoodandy/trash-cleaner-mcp-server
 ```
 
 ## Installation

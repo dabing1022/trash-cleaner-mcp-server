@@ -90,10 +90,20 @@
 - TypeScript
 
 ## 使用方法
-发布到 npm 后，可通过 bunx 运行 MCP 服务：
+发布到 npm 后，可通过 Bun 或 npm 运行 MCP 服务：
 
+**使用 Bun:**
 ```sh
 bunx @childhoodandy/trash-cleaner-mcp-server
+# 或自动安装
+bunx -y @childhoodandy/trash-cleaner-mcp-server
+```
+
+**使用 npm:**
+```sh
+npx @childhoodandy/trash-cleaner-mcp-server
+# 或自动安装
+npx -y @childhoodandy/trash-cleaner-mcp-server
 ```
 
 1. 启动本服务。

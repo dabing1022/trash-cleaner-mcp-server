@@ -1,11 +1,18 @@
 {
   "name": "@childhoodandy/trash-cleaner-mcp-server",
-  "version": "0.1.4",
-  "module": "index.ts",
+  "version": "0.1.5",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
   "type": "module",
   "bin": {
-    "trash-cleaner-mcp-server": "index.ts"
+    "trash-cleaner-mcp-server": "dist/index.js"
   },
+  "files": [
+    "dist/**/*",
+    "src/**/*",
+    "package.json",
+    "README.md"
+  ],
   "private": false,
   "devDependencies": {
     "@types/bun": "latest",
@@ -16,7 +23,10 @@
   },
   "scripts": {
     "start": "bun run index.ts",
-    "release": "npm publish --access public"
+    "build": "bun build index.ts --outdir dist --target node --format esm",
+    "prepublishOnly": "npm run build",
+    "release": "npm publish --access public",
+    "postinstall": "chmod +x dist/index.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "latest",
